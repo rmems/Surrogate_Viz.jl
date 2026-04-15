@@ -6,6 +6,22 @@ A Julia-based research project focused on discovering new mathematical equation 
 
 This repository serves as the foundation for exploring mathematical formulations in SNN quantization, with the ultimate goal of creating efficient training algorithms for Spikenaut. The project leverages latent data generated from a 508-neuron brain model to drive discoveries in neural network quantization techniques.
 
+## Hardware & Telemetry
+
+**Workstation**: "Ship of Theseus"
+
+**Specifications**:
+- **GPU**: NVIDIA RTX 5080
+- **CPU**: AMD Ryzen 9 9950X
+
+**Telemetry Data Source**:
+The `telemetry.csv` dataset contains system telemetry collected during gameplay of **Resident Evil 4 Remake** at high settings, utilizing approximately **11.3 GB of VRAM**. This chaotic real-world data provides:
+- GPU temperature and power consumption
+- CPU temperature and package power
+- Timestamps for temporal analysis
+
+The telemetry data is used to simulate SNN firing rates and develop quantization algorithms under realistic, dynamic conditions.
+
 ## Current Goals
 
 ### Teaching LLMs SNN Language
@@ -83,7 +99,7 @@ This is an active research project. Contributions and collaborations are welcome
 
 ## License
 
-[License to be determined]
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 

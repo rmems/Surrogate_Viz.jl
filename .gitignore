@@ -1,0 +1,35 @@
+# Julia specific
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+deps/deps.jl
+Manifest.toml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data files (optional - uncomment if you want to exclude large data files)
+# *.csv
+# *.json
+# *.h5
+
+# Temporary files
+*.tmp
+*.bak
+*~
+
+# Build artifacts
+build/
+dist/
+*.o
+*.so
+*.dylib
+*.dll
