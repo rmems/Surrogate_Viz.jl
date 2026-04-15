@@ -1,7 +1,8 @@
 # Dormant harness for latent SAAQ equation discovery using true SNN signals
 
 using Pkg
-Pkg.add(["SymbolicRegression", "CSV", "DataFrames"])
+Pkg.activate(@__DIR__)
+Pkg.instantiate()
 
 using SymbolicRegression
 using CSV
