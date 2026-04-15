@@ -29,7 +29,7 @@ X = hcat(df.gpu_temp_c, df.gpu_power_w, df.cpu_package_power_w, snn_firing_rate)
 # y is our predicted compression level (Answer Key)
 y = ideal_compression_y
 
-println("4. Launching Evolutionary Math Search (This will take a momemt)...")
+println("4. Launching Evolutionary Math Search (This will take a moment)...")
 # We give Julia basic math operations to build equation
 options = SymbolicRegression.Options(
     binary_operators=[+,-,*,/],
@@ -41,5 +41,5 @@ options = SymbolicRegression.Options(
 hof = EquationSearch(X, y, niterations=30, options=options)
 
 println("\n=== DISCOVERY COMPLETE ===")
-println("Dominant Equations FOund:")
+println("Dominant Equations Found:")
 print(hof)
