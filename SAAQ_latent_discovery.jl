@@ -24,9 +24,9 @@ end
 
 df = CSV.read(csv_path, DataFrame)
 
-missing = setdiff(REQUIRED_COLS, names(df))
-if !isempty(missing)
-    error("Telemetry is missing required column(s): $(join(string.(missing), ", ")). Check the Rust exporter schema.")
+missing_cols = setdiff(REQUIRED_COLS, propertynames(df))
+if !isempty(missing_cols)
+    error("Telemetry is missing required column(s): $(join(string.(missing_cols), ", ")). Check the Rust exporter schema.")
 end
 
 println("2) Building feature matrix X and target y...")
