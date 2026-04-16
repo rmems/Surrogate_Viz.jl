@@ -1,9 +1,10 @@
 using DataFrames
 using CairoMakie
 
-const INPUT_PATH = joinpath(@__DIR__, "smoke_test_output.txt")
-const OUTPUT_PATH = joinpath(@__DIR__, "latent_space_exploration.png")
 const TICK_PATTERN = r"^tick=(\d+) best_walker=(\d+) elapsed_us=\d+$"
+
+input_path() = get(ARGS, 1, "smoke_test_output.txt")
+output_path() = get(ARGS, 2, "latent_space_exploration.png")
 
 function load_tick_data(path::AbstractString)
     ticks = Int[]
@@ -64,12 +65,15 @@ function build_dashboard(df::DataFrame)
 end
 
 function main()
-    df = load_tick_data(INPUT_PATH)
-    fig = build_dashboard(df)
-    save(OUTPUT_PATH, fig; px_per_unit = 3)
+    input_file = input_path()
+    output_file = output_path()
 
-    println("Loaded $(nrow(df)) tick rows from $(INPUT_PATH)")
-    println("Saved dashboard to $(OUTPUT_PATH)")
+    df = load_tick_data(input_file)
+    fig = build_dashboard(df)
+    save(output_file, fig; px_per_unit = 3)
+
+    println("Loaded $(nrow(df)) tick rows from $(input_file)")
+    println("Saved dashboard to $(output_file)")
 end
 
 main()

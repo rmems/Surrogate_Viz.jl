@@ -1,0 +1,1 @@
+My Y variable "walker" goal is find the best routing pathway.  Best to think as is it looking for the best physical route with least resistance!  In way acts as my pulse of electrical energy (a spike).
