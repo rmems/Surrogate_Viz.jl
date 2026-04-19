@@ -1,3 +1,3 @@
 Massive win: after running two seperate tests the graph don't look exact same.   First real failed due to misconfiguration in cuda.  The Cuda kernels were searching for F32 instead of F16.   Second test was successful by running prompt "Teaching OMLoE the language of SNN".   Third test I changed the vectors to represent rust syntax prompt "fn main () { println!(); }.   This is where the true victory of this project came so far because the L2 Normalization just forced the hardware to adopt.   Had it been the same as first result it would indicate that L2 Normalization created an lazy resting state, regardless of what I fed it.  It would have been an failure.
 
-
+Testing fourth routing result

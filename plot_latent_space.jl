@@ -3,8 +3,8 @@ using CairoMakie
 
 const TICK_PATTERN = r"^tick=(\d+) best_walker=(\d+) elapsed_us=\d+$"
 
-input_path() = get(ARGS, 1, "smoke_test_output.txt")
-output_path() = get(ARGS, 2, "latent_space_exploration.png")
+input_path() = get(ARGS, 1, "telemetry_OMLoE_math_logic.txt")
+output_path() = get(ARGS, 2, "map__OMLoE_math_logic.png")
 
 function load_tick_data(path::AbstractString)
     ticks = Int[]
