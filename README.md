@@ -59,3 +59,34 @@ Surrogate_Viz.jl/
 `data/<model>/` in this repo; generated artifacts live under
 `outputs/<model>/{dashboards,sr_results}/`. Never edit simulator code or
 commit raw simulator CSVs from this side.
+
+## Importing corinth-canal runs
+
+`corinth-canal` remains the producer of SAAQ artifacts under its own
+`artifacts/` tree. `Surrogate_Viz.jl` only imports selected runs from
+that repo and builds local comparison plots/reports from the imported
+files.
+
+The selected baseline runs are listed in `data/selected_runs.toml`.
+Import them into deterministic local paths under
+`data/corinth_runs/<model>/<telemetry_source>/<heartbeat>/<run_id>/`
+with:
+
+```bash
+julia import_corinth_runs.jl
+```
+
+Imports prefer symlinks for the three source files
+(`latent_telemetry.csv`, `tick_telemetry.txt`, `summary.json`) and fall
+back to copies if symlinks are unavailable. Re-import in overwrite mode
+with `FORCE_IMPORT=true julia import_corinth_runs.jl`.
+
+After importing, compare the blessed OLMoE RE4 SAAQ 1.5 heartbeat pair
+for repeat `0` with:
+
+```bash
+julia compare_saaq15_baseline_pair.jl
+```
+
+This writes a compact PNG plus markdown summary under
+`outputs/olmoe-1b-7b/dashboards/`.
