@@ -1,0 +1,55 @@
+[[runs]]
+id = "20260423T195615_math_logic_r0_baseline_csv_off"
+model = "olmoe_baseline"
+family = "Olmoe"
+telemetry_source = "csv_re4_path_tracing_telemetry"
+heartbeat = "heartbeat_off"
+repeat_idx = 0
+rule = "SaaqV1_5SqrtRate"
+source_run_dir = "/home/raulmc/corinth-canal/artifacts/olmoe_baseline/csv_re4_path_tracing_telemetry/heartbeat_off/20260423T195615_math_logic_r0_baseline_csv_off"
+latent_telemetry_csv = "/home/raulmc/corinth-canal/artifacts/olmoe_baseline/csv_re4_path_tracing_telemetry/heartbeat_off/20260423T195615_math_logic_r0_baseline_csv_off/latent_telemetry.csv"
+tick_telemetry_txt = "/home/raulmc/corinth-canal/artifacts/olmoe_baseline/csv_re4_path_tracing_telemetry/heartbeat_off/20260423T195615_math_logic_r0_baseline_csv_off/tick_telemetry.txt"
+summary_json = "/home/raulmc/corinth-canal/artifacts/olmoe_baseline/csv_re4_path_tracing_telemetry/heartbeat_off/20260423T195615_math_logic_r0_baseline_csv_off/summary.json"
+blessed = true
+
+[[runs]]
+id = "20260423T195637_math_logic_r1_baseline_csv_off"
+model = "olmoe_baseline"
+family = "Olmoe"
+telemetry_source = "csv_re4_path_tracing_telemetry"
+heartbeat = "heartbeat_off"
+repeat_idx = 1
+rule = "SaaqV1_5SqrtRate"
+source_run_dir = "/home/raulmc/corinth-canal/artifacts/olmoe_baseline/csv_re4_path_tracing_telemetry/heartbeat_off/20260423T195637_math_logic_r1_baseline_csv_off"
+latent_telemetry_csv = "/home/raulmc/corinth-canal/artifacts/olmoe_baseline/csv_re4_path_tracing_telemetry/heartbeat_off/20260423T195637_math_logic_r1_baseline_csv_off/latent_telemetry.csv"
+tick_telemetry_txt = "/home/raulmc/corinth-canal/artifacts/olmoe_baseline/csv_re4_path_tracing_telemetry/heartbeat_off/20260423T195637_math_logic_r1_baseline_csv_off/tick_telemetry.txt"
+summary_json = "/home/raulmc/corinth-canal/artifacts/olmoe_baseline/csv_re4_path_tracing_telemetry/heartbeat_off/20260423T195637_math_logic_r1_baseline_csv_off/summary.json"
+blessed = true
+
+[[runs]]
+id = "20260423T195816_math_logic_r0_baseline_csv_on"
+model = "olmoe_baseline"
+family = "Olmoe"
+telemetry_source = "csv_re4_path_tracing_telemetry"
+heartbeat = "heartbeat_on"
+repeat_idx = 0
+rule = "SaaqV1_5SqrtRate"
+source_run_dir = "/home/raulmc/corinth-canal/artifacts/olmoe_baseline/csv_re4_path_tracing_telemetry/heartbeat_on/20260423T195816_math_logic_r0_baseline_csv_on"
+latent_telemetry_csv = "/home/raulmc/corinth-canal/artifacts/olmoe_baseline/csv_re4_path_tracing_telemetry/heartbeat_on/20260423T195816_math_logic_r0_baseline_csv_on/latent_telemetry.csv"
+tick_telemetry_txt = "/home/raulmc/corinth-canal/artifacts/olmoe_baseline/csv_re4_path_tracing_telemetry/heartbeat_on/20260423T195816_math_logic_r0_baseline_csv_on/tick_telemetry.txt"
+summary_json = "/home/raulmc/corinth-canal/artifacts/olmoe_baseline/csv_re4_path_tracing_telemetry/heartbeat_on/20260423T195816_math_logic_r0_baseline_csv_on/summary.json"
+blessed = true
+
+[[runs]]
+id = "20260423T195838_math_logic_r1_baseline_csv_on"
+model = "olmoe_baseline"
+family = "Olmoe"
+telemetry_source = "csv_re4_path_tracing_telemetry"
+heartbeat = "heartbeat_on"
+repeat_idx = 1
+rule = "SaaqV1_5SqrtRate"
+source_run_dir = "/home/raulmc/corinth-canal/artifacts/olmoe_baseline/csv_re4_path_tracing_telemetry/heartbeat_on/20260423T195838_math_logic_r1_baseline_csv_on"
+latent_telemetry_csv = "/home/raulmc/corinth-canal/artifacts/olmoe_baseline/csv_re4_path_tracing_telemetry/heartbeat_on/20260423T195838_math_logic_r1_baseline_csv_on/latent_telemetry.csv"
+tick_telemetry_txt = "/home/raulmc/corinth-canal/artifacts/olmoe_baseline/csv_re4_path_tracing_telemetry/heartbeat_on/20260423T195838_math_logic_r1_baseline_csv_on/tick_telemetry.txt"
+summary_json = "/home/raulmc/corinth-canal/artifacts/olmoe_baseline/csv_re4_path_tracing_telemetry/heartbeat_on/20260423T195838_math_logic_r1_baseline_csv_on/summary.json"
+blessed = true
