@@ -1,108 +1,61 @@
 # Surrogate_Viz.jl
 
-A Julia-based research project focused on discovering new mathematical equation algorithms for Spiking Neural Network (SNN) quantization and developing novel training algorithms for Spikenaut, a pure SNN model.
+Julia-based SymbolicRegression + visualization workbench for
+[corinth-canal](../corinth-canal) SAAQ telemetry. Consumes dual-SAAQ CSVs
+and tick telemetry emitted by the Rust simulator and produces SR.jl
+hall-of-fame discoveries plus heartbeat validation dashboards.
 
-## Overview
+## MoE Target Models
 
-This repository serves as the foundation for exploring mathematical formulations in SNN quantization, with the ultimate goal of creating efficient training algorithms for Spikenaut. The project leverages latent data generated from a 508-neuron brain model to drive discoveries in neural network quantization techniques.
+Current experimentation targets the following five mixture-of-experts
+instructor models:
 
-## Hardware & Telemetry
+1. `DeepSeek-Coder-V2-Lite-Instruct-Q6_K_L.gguf`
+2. `gemma-4-26B-A4B-it-UD-IQ4_NL.gguf`
+3. `L3.2-8X3B-MOE-Dark-Champion-Inst-18.4B-uncen-ablit_D_AU-q5_k_m.gguf`
+4. `olmoe-1b-7b` (default)
+5. `qwen3-moe-i1-GGUF IQ3_M.gguf`
 
-**Workstation**: "Ship of Theseus"
-
-**Specifications**:
-- **GPU**: NVIDIA RTX 5080
-- **CPU**: AMD Ryzen 9 9950X
-
-**Telemetry Data Source**:
-The `telemetry.csv` dataset contains system telemetry collected during gameplay of **Resident Evil 4 Remake** at high settings, utilizing approximately **11.3 GB of VRAM**. This chaotic real-world data provides:
-- GPU temperature and power consumption
-- CPU temperature and package power
-- Timestamps for temporal analysis
-
-The telemetry data is used to simulate SNN firing rates and develop quantization algorithms under realistic, dynamic conditions.
-
-## Current Goals
-
-### Teaching LLMs SNN Language
-The primary focus is to instruct Large Language Models in the language of Spiking Neural Networks. This involves:
-
-- Developing quantization strategies for SNN architectures
-- Creating instructional datasets that bridge LLM and SNN paradigms
-- Experimenting with various model architectures to understand SNN language acquisition
-
-### Target Models
-Current experimentation focuses on the following instructor models:
-
-- **OLMoE-1B-7B-Instructor** - Mixture of Experts architecture
-- **LFM2-8B-A1B** - Advanced language model
-- **Phi-3-mini-4k-instruct** - Compact instruction-tuned model
-- **Falcon3-7B-Instruct** - Open-source instruction following model
-
-## Research Methodology
-
-### 508-Neuron Brain Model
-- Utilizes a 508-neuron brain architecture to generate latent data during quantization experiments
-- This latent data serves as the foundation for discovering new mathematical equations
-- The brain model provides biological inspiration for artificial quantization algorithms
-
-### Mathematical Discovery
-- Analyzing patterns in latent data to formulate new quantization equations
-- Developing surrogate visualization techniques to understand quantization dynamics
-- Iterative refinement of mathematical models based on experimental results
-
-## Future Work
-
-### Grand Quantization of Grok-1
-- Apply discovered quantization algorithms to Grok-1 (sourced from xai-org HuggingFace)
-- Scale quantization techniques to larger model architectures
-- Validate mathematical formulations on state-of-the-art models
-
-### Spikenaut Training Algorithm
-- Develop a complete training algorithm for pure SNN models
-- Integrate discovered quantization methods into the training pipeline
-- Create efficient SNN-specific optimization strategies
+Select the active model at runtime with the `MODEL` env var, e.g.
+`MODEL="qwen3-moe-i1-GGUF IQ3_M.gguf" julia plot_saaq15_validation.jl`.
 
 ## Project Structure
 
 ```
 Surrogate_Viz.jl/
-├── SAAQ_discovery.jl    # SNN Algorithm and Quantization discovery experiments
-└── README.md             # Project documentation
+├── SAAQ_discovery.jl         # SR.jl over raw RE4 telemetry
+├── SAAQ_latent_discovery.jl  # SR.jl over 508-neuron latent telemetry
+├── plot_saaq15_validation.jl # Heartbeat/SAAQ 1.5 validation dashboard
+├── plot_latent_space.jl      # Latent space exploration plot
+├── data/                     # (gitignored, dirs kept via .gitkeep)
+│   ├── DeepSeek-Coder-V2-Lite-Instruct-Q6_K_L.gguf/
+│   ├── gemma-4-26B-A4B-it-UD-IQ4_NL.gguf/
+│   ├── L3.2-8X3B-MOE-Dark-Champion-Inst-18.4B-uncen-ablit_D_AU-q5_k_m.gguf/
+│   ├── olmoe-1b-7b/
+│   └── qwen3-moe-i1-GGUF IQ3_M.gguf/
+├── outputs/                  # (gitignored, dirs kept via .gitkeep)
+│   ├── DeepSeek-Coder-V2-Lite-Instruct-Q6_K_L.gguf/
+│   │   ├── dashboards/       # timestamped validation PNGs
+│   │   └── sr_results/       # SR.jl hall_of_fame CSVs
+│   ├── gemma-4-26B-A4B-it-UD-IQ4_NL.gguf/
+│   ├── L3.2-8X3B-MOE-Dark-Champion-Inst-18.4B-uncen-ablit_D_AU-q5_k_m.gguf/
+│   ├── olmoe-1b-7b/
+│   └── qwen3-moe-i1-GGUF IQ3_M.gguf/
+└── README.md
 ```
 
-## Installation
+## Repo Separation: Surrogate_Viz.jl vs corinth-canal
 
-```julia
-# Add the package (when published)
-using Pkg
-Pkg.add("Surrogate_Viz")
-```
+| Concern                                  | Owner              |
+| ---------------------------------------- | ------------------ |
+| SNN simulator, SAAQ rules, CSV emission  | `corinth-canal`    |
+| Simulator unit/integration tests         | `corinth-canal`    |
+| Dual-SAAQ + telemetry schema             | `corinth-canal`    |
+| SymbolicRegression.jl driver scripts     | `Surrogate_Viz.jl` |
+| Plots / dashboards / exploratory notes   | `Surrogate_Viz.jl` |
+| `hall_of_fame.csv` + PNG artifacts       | `Surrogate_Viz.jl/outputs/` |
 
-For development:
-```julia
-using Pkg
-Pkg.develop(path="path/to/Surrogate_Viz.jl")
-```
-
-## Usage
-
-```julia
-using Surrogate_Viz
-
-# Example usage will be added as the project develops
-```
-
-## Contributing
-
-This is an active research project. Contributions and collaborations are welcome as the mathematical foundations develop.
-
-## License
-
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- xai-org for Grok-1 model access via HuggingFace
-- The open-source community for the target LLM models
-- Research community in SNN and quantization fields
+**One-way data flow:** simulator outputs land under
+`data/<model>/` in this repo; generated artifacts live under
+`outputs/<model>/{dashboards,sr_results}/`. Never edit simulator code or
+commit raw simulator CSVs from this side.

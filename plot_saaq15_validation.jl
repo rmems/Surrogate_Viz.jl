@@ -1,12 +1,36 @@
 using CSV
 using DataFrames
+using Dates
 using Plots
+using Random
 
 const TICK_PATTERN = r"^tick=(\d+) best_walker=(\d+) elapsed_us=(\d+) heartbeat_signal=([-+0-9.eE]+) gpu_temp_c=([-+0-9.eE]+) gpu_power_w=([-+0-9.eE]+) cpu_tctl_c=([-+0-9.eE]+) cpu_package_power_w=([-+0-9.eE]+)$"
 
-latent_input_path() = get(ARGS, 1, "latent_telemetry.csv")
-tick_input_path() = get(ARGS, 2, "tick_telemetry.txt")
-output_path() = get(ARGS, 3, "saaq15_validation_dashboard.png")
+const MODELS = [
+    "DeepSeek-Coder-V2-Lite-Instruct-Q6_K_L.gguf",
+    "gemma-4-26B-A4B-it-UD-IQ4_NL.gguf",
+    "L3.2-8X3B-MOE-Dark-Champion-Inst-18.4B-uncen-ablit_D_AU-q5_k_m.gguf",
+    "olmoe-1b-7b",
+    "qwen3-moe-i1-GGUF IQ3_M.gguf",
+]
+
+function model_name()
+    m = get(ENV, "MODEL", MODELS[4])  # default olmoe-1b-7b
+    m in MODELS || @warn "Unknown MODEL=$(m); expected one of $(MODELS)"
+    return m
+end
+
+function default_dashboard_path()
+    stamp = Dates.format(now(), "yyyymmdd_HHMMSS")
+    suffix = Random.randstring(6)
+    dir = joinpath(@__DIR__, "outputs", model_name(), "dashboards", string(stamp, "_", suffix))
+    mkpath(dir)
+    return joinpath(dir, "saaq15_validation_dashboard.png")
+end
+
+latent_input_path() = get(ARGS, 1, joinpath(@__DIR__, "data", model_name(), "snn_latent_telemetry.csv"))
+tick_input_path() = get(ARGS, 2, joinpath(@__DIR__, "data", model_name(), "tick_telemetry.txt"))
+output_path() = length(ARGS) >= 3 ? ARGS[3] : default_dashboard_path()
 
 function load_latent_data(path::AbstractString)
     df = CSV.read(path, DataFrame)
