@@ -30,7 +30,7 @@ end
 function blessed_pair(runs::AbstractVector, repeat_idx::Int)
     blessed_runs = filter(runs) do run
         get(run, "blessed", false) == true &&
-        get(run, "campaign", "baseline_csv") == "baseline_csv" &&
+        get(run, "campaign", nothing) == "baseline_csv" &&
         run["model"] == "olmoe_baseline" &&
         run["family"] == "Olmoe" &&
         run["telemetry_source"] == "csv_re4_path_tracing_telemetry" &&

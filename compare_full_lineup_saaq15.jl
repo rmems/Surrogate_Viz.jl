@@ -38,7 +38,8 @@ function full_lineup_runs(all_runs::AbstractVector)
         get(run, "campaign", nothing) == CAMPAIGN &&
         run["telemetry_source"] == TELEMETRY_SOURCE &&
         run["rule"] == RULE &&
-        Int(run["repeat_idx"]) == REPEAT_IDX
+        Int(run["repeat_idx"]) == REPEAT_IDX &&
+        get(run, "blessed", false) == true
     end
 end
 
@@ -120,23 +121,35 @@ function maybe_entropy_column(frames::Vector{DataFrame})
     return "routing_entropy" in common_names ? :routing_entropy : nothing
 end
 
+to_float64_vec(col) = Float64[Float64(v) for v in skipmissing(col)]
+to_int_ms(v) = Int(round(Float64(v)))
+
 function summarise_run(df::DataFrame, run::Dict{String,<:Any}, delta_col::Symbol, entropy_col::Union{Nothing,Symbol})
-    delta_values = Float64.(df[!, delta_col])
+    nrow(df) > 0 || error("summarise_run: empty DataFrame for run id=$(run["id"]) heartbeat=$(run["heartbeat"])")
+
+    delta_values = to_float64_vec(df[!, delta_col])
+    isempty(delta_values) && error("summarise_run: column $(delta_col) is empty after dropping missing values for run $(run["id"])")
+
     row = Dict{String,Any}(
         "run_id" => run["id"],
         "heartbeat" => run["heartbeat"],
         "rows" => nrow(df),
-        "first_ms" => Int(first(df.timestamp_ms)),
-        "last_ms" => Int(last(df.timestamp_ms)),
+        "first_ms" => to_int_ms(first(df.timestamp_ms)),
+        "last_ms" => to_int_ms(last(df.timestamp_ms)),
         "mean_delta" => mean(delta_values),
         "max_delta" => maximum(delta_values),
         "final_delta" => last(delta_values),
     )
 
     if entropy_col !== nothing
-        entropy_values = Float64.(df[!, entropy_col])
-        row["mean_entropy"] = mean(entropy_values)
-        row["final_entropy"] = last(entropy_values)
+        entropy_values = to_float64_vec(df[!, entropy_col])
+        if isempty(entropy_values)
+            row["mean_entropy"] = missing
+            row["final_entropy"] = missing
+        else
+            row["mean_entropy"] = mean(entropy_values)
+            row["final_entropy"] = last(entropy_values)
+        end
     else
         row["mean_entropy"] = missing
         row["final_entropy"] = missing
@@ -172,7 +185,8 @@ function pairwise_summary(off_df::DataFrame, on_df::DataFrame, delta_col::Symbol
 end
 
 function build_plot(model_slug::AbstractString, off_df::DataFrame, on_df::DataFrame, joined_df::DataFrame, delta_col::Symbol, entropy_col::Union{Nothing,Symbol})
-    default(fontfamily = "Helvetica", legend = :topright, lw = 2.0, size = (1400, entropy_col === nothing ? 900 : 1200), dpi = 180)
+    panel_attrs = (fontfamily = "Helvetica", legend = :topright, lw = 2.0)
+    fig_size = (1400, entropy_col === nothing ? 900 : 1200)
 
     p1 = plot(
         off_df.timestamp_ms,
@@ -182,6 +196,7 @@ function build_plot(model_slug::AbstractString, off_df::DataFrame, on_df::DataFr
         xlabel = "Timestamp (ms)",
         ylabel = string(delta_col),
         title = "$(model_slug) — SAAQ 1.5 $(delta_col)",
+        panel_attrs...,
     )
     plot!(p1, on_df.timestamp_ms, on_df[!, delta_col]; label = "heartbeat_on", color = :crimson)
 
@@ -193,11 +208,12 @@ function build_plot(model_slug::AbstractString, off_df::DataFrame, on_df::DataFr
         xlabel = "Timestamp (ms)",
         ylabel = "Delta Difference",
         title = "Pairwise Delta Difference",
+        panel_attrs...,
     )
     hline!(p2, [0.0]; label = "zero", color = :black, linestyle = :dash)
 
     if entropy_col === nothing
-        return plot(p1, p2; layout = (2, 1))
+        return plot(p1, p2; layout = (2, 1), size = fig_size, dpi = 180)
     end
 
     p3 = plot(
@@ -208,14 +224,19 @@ function build_plot(model_slug::AbstractString, off_df::DataFrame, on_df::DataFr
         xlabel = "Timestamp (ms)",
         ylabel = string(entropy_col),
         title = "Routing Entropy",
+        panel_attrs...,
     )
     plot!(p3, on_df.timestamp_ms, on_df[!, entropy_col]; label = "routing_entropy on", color = :orange3)
 
-    return plot(p1, p2, p3; layout = (3, 1))
+    return plot(p1, p2, p3; layout = (3, 1), size = fig_size, dpi = 180)
 end
 
 fmt(x::Missing) = "-"
-fmt(x::Real) = string(round(Float64(x); digits = 6))
+function fmt(x::Real)
+    rounded = round(Float64(x); digits = 6)
+    rounded == 0.0 && (rounded = 0.0)  # normalize -0.0 -> 0.0
+    return string(rounded)
+end
 fmt(x) = string(x)
 
 struct ModelResult

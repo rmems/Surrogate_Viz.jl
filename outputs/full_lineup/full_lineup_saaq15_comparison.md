@@ -5,7 +5,7 @@
 - Telemetry source: `csv_re4_path_tracing_telemetry`
 - Rule: `SaaqV1_5SqrtRate`
 - Models: 5 (olmoe_baseline, qwen3_moe_i1_iq3_m, gemma4_26b_a4b_iq4_nl, deepseek_coder_v2_lite_q6_k_l, llama_3_2_dark_champion_q5_k_m)
-- Generated: `2026-04-28T20:00:13`
+- Generated: `2026-04-28T20:23:56`
 
 ## olmoe_baseline (Olmoe)
 
@@ -29,7 +29,7 @@
 | Mean delta (on - off) | 0.0 |
 | Max abs delta (on - off) | 0.0 |
 | Final delta (on - off) | 0.0 |
-| Mean entropy (on - off) | -0.0 |
+| Mean entropy (on - off) | 0.0 |
 | Final entropy (on - off) | -1.0e-6 |
 
 ![olmoe_baseline](olmoe_baseline.png)
