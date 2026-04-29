@@ -60,6 +60,24 @@ Surrogate_Viz.jl/
 `outputs/<model>/{dashboards,sr_results}/`. Never edit simulator code or
 commit raw simulator CSVs from this side.
 
+## Full Lineup Comparison
+
+`compare_full_lineup_saaq15.jl` reads `data/selected_runs.toml` for entries
+tagged `campaign = "full_lineup"`, repeat-0, with telemetry source
+`csv_re4_path_tracing_telemetry` and rule `SaaqV1_5SqrtRate`. For each of the
+five MoE model slugs (`olmoe_baseline`, `qwen3_moe_i1_iq3_m`,
+`gemma4_26b_a4b_iq4_nl`, `deepseek_coder_v2_lite_q6_k_l`,
+`llama_3_2_dark_champion_q5_k_m`) it pairs the heartbeat_off vs heartbeat_on
+runs, writes one PNG per model and a single combined markdown report under
+`outputs/full_lineup/`.
+
+```
+julia --project=. import_corinth_runs.jl
+julia --project=. compare_full_lineup_saaq15.jl
+# outputs/full_lineup/full_lineup_saaq15_comparison.md
+# outputs/full_lineup/<model_slug>.png  (one per model)
+```
+
 ## Importing corinth-canal runs
 
 `corinth-canal` remains the producer of SAAQ artifacts under its own
