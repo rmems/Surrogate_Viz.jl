@@ -44,10 +44,34 @@ end
 
 function model_pair(runs::AbstractVector, model_slug::AbstractString)
     model_runs = filter(run -> run["model"] == model_slug, runs)
-    isempty(model_runs) && error("No full_lineup runs found for model $(model_slug)")
     off_run = only(filter(run -> run["heartbeat"] == "heartbeat_off", model_runs))
     on_run = only(filter(run -> run["heartbeat"] == "heartbeat_on", model_runs))
     return off_run, on_run
+end
+
+function validate_pairs(runs::AbstractVector, models::AbstractVector{<:AbstractString})
+    problems = String[]
+    for slug in models
+        for hb in ("heartbeat_off", "heartbeat_on")
+            matches = filter(run -> run["model"] == slug && run["heartbeat"] == hb, runs)
+            if length(matches) == 0
+                push!(problems, "missing run: model=$(slug) heartbeat=$(hb)")
+            elseif length(matches) > 1
+                ids = join((m["id"] for m in matches), ", ")
+                push!(problems, "duplicate runs: model=$(slug) heartbeat=$(hb) ids=[$(ids)]")
+            end
+        end
+    end
+
+    isempty(problems) && return
+
+    error(
+        "compare_full_lineup_saaq15.jl: filter (campaign=$(CAMPAIGN), repeat_idx=$(REPEAT_IDX), " *
+        "telemetry_source=$(TELEMETRY_SOURCE), rule=$(RULE)) did not yield exactly one " *
+        "heartbeat_off and one heartbeat_on per model:\n  - " *
+        join(problems, "\n  - ") *
+        "\nUpdate data/selected_runs.toml or rerun import_corinth_runs.jl and try again.",
+    )
 end
 
 function imported_latent_path(run::Dict{String,<:Any})
@@ -317,6 +341,7 @@ function main()
     runs = load_selected_runs(SELECTED_RUNS_PATH)
     campaign_runs = full_lineup_runs(runs)
     isempty(campaign_runs) && error("No runs found for campaign=$(CAMPAIGN), repeat_idx=$(REPEAT_IDX) in $(SELECTED_RUNS_PATH)")
+    validate_pairs(campaign_runs, MODEL_ORDER)
 
     mkpath(OUTPUT_DIR)
     results = ModelResult[]
