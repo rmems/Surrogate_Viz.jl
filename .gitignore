@@ -48,7 +48,11 @@ data/gemma-4-26B-A4B-it-UD-IQ4_NL.gguf/*
 data/L3.2-8X3B-MOE-Dark-Champion-Inst-18.4B-uncen-ablit_D_AU-q5_k_m.gguf/*
 data/olmoe-1b-7b/*
 data/qwen3-moe-i1-GGUF IQ3_M.gguf/*
+data/zaya1_8b_q8_0/*
+data/glm46v_flash_q8_0/*
+data/kimi_vl_a3b_q6_k/*
+data/marco_nano_base_q8_0/*
 !data/*/.gitkeep
 
 # Selected runs manifest (machine-local absolute paths)
-# data/selected_runs.toml
+data/selected_runs.toml
