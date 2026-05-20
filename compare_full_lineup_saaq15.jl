@@ -24,6 +24,11 @@ const MODEL_ORDER = [
     "gemma4_26b_a4b_iq4_nl",
     "deepseek_coder_v2_lite_q6_k_l",
     "llama_3_2_dark_champion_q5_k_m",
+    # Onboarded in corinth-canal LLM-models-onboarding PR #68
+    "zaya1_8b_q8_0",
+    "glm46v_flash_q8_0",
+    "kimi_vl_a3b_q6_k",
+    "marco_nano_base_q8_0",
 ]
 
 function load_selected_runs(path::AbstractString)
@@ -51,28 +56,40 @@ function model_pair(runs::AbstractVector, model_slug::AbstractString)
 end
 
 function validate_pairs(runs::AbstractVector, models::AbstractVector{<:AbstractString})
+    available = String[]
     problems = String[]
     for slug in models
-        for hb in ("heartbeat_off", "heartbeat_on")
-            matches = filter(run -> run["model"] == slug && run["heartbeat"] == hb, runs)
-            if length(matches) == 0
-                push!(problems, "missing run: model=$(slug) heartbeat=$(hb)")
-            elseif length(matches) > 1
-                ids = join((m["id"] for m in matches), ", ")
-                push!(problems, "duplicate runs: model=$(slug) heartbeat=$(hb) ids=[$(ids)]")
+        off_matches = filter(run -> run["model"] == slug && run["heartbeat"] == "heartbeat_off", runs)
+        on_matches = filter(run -> run["model"] == slug && run["heartbeat"] == "heartbeat_on", runs)
+        if length(off_matches) == 0 || length(on_matches) == 0
+            push!(problems, "missing run: model=$(slug) (off=$(length(off_matches)), on=$(length(on_matches)))")
+        else
+            push!(available, slug)
+            if length(off_matches) > 1
+                ids = join((m["id"] for m in off_matches), ", ")
+                push!(problems, "duplicate heartbeat_off runs: model=$(slug) ids=[$(ids)]")
+            end
+            if length(on_matches) > 1
+                ids = join((m["id"] for m in on_matches), ", ")
+                push!(problems, "duplicate heartbeat_on runs: model=$(slug) ids=[$(ids)]")
             end
         end
     end
 
-    isempty(problems) && return
+    for p in problems
+        @warn "Model validation: $p"
+    end
 
-    error(
-        "compare_full_lineup_saaq15.jl: filter (campaign=$(CAMPAIGN), repeat_idx=$(REPEAT_IDX), " *
-        "telemetry_source=$(TELEMETRY_SOURCE), rule=$(RULE)) did not yield exactly one " *
-        "heartbeat_off and one heartbeat_on per model:\n  - " *
-        join(problems, "\n  - ") *
-        "\nUpdate data/selected_runs.toml or rerun import_corinth_runs.jl and try again.",
-    )
+    if isempty(available)
+        error(
+            "compare_full_lineup_saaq15.jl: no models with complete (off+on) runs found. " *
+            "Filter: campaign=$(CAMPAIGN), repeat_idx=$(REPEAT_IDX), " *
+            "telemetry_source=$(TELEMETRY_SOURCE), rule=$(RULE). " *
+            "Run `import_corinth_runs.jl` first.",
+        )
+    end
+
+    return available
 end
 
 function imported_latent_path(run::Dict{String,<:Any})

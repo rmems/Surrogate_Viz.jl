@@ -20,48 +20,42 @@ function load_tick_data(path::AbstractString)
 
     isempty(ticks) && error("No tick data found in $(path). Expected lines like 'tick=1 best_walker=1976 elapsed_us=2584'.")
 
-    return DataFrame(tick = ticks, best_walker = best_walkers)
+    return DataFrame(tick=ticks, best_walker=best_walkers)
 end
 
 function build_dashboard(df::DataFrame)
-    fig = Figure(size = (1400, 900), fontsize = 18)
+    default(fontfamily="Helvetica", legend=false, size=(1400, 900), dpi=180)
 
-    ax_path = Axis(
-        fig[1, 1],
-        title = "SNN Routing Path Over Time",
-        xlabel = "Tick",
-        ylabel = "Best Walker Index",
-    )
-
-    scatter!(
-        ax_path,
+    p1 = scatter(
         df.tick,
         df.best_walker;
-        markersize = 16,
-        color = :dodgerblue3,
-        strokewidth = 0.75,
-        strokecolor = :black,
-    )
-    ylims!(ax_path, 0, 2047)
-
-    ax_hist = Axis(
-        fig[2, 1],
-        title = "Best Walker Firing Density",
-        xlabel = "Best Walker Index",
-        ylabel = "Count",
+        title="SNN Routing Path Over Time",
+        xlabel="Tick",
+        ylabel="Best Walker Index",
+        ylims=(0, 2047),
+        markersize=6,
+        color=:dodgerblue3,
+        markeralpha=0.85,
+        markerstrokewidth=0.75,
+        markerstrokecolor=:black,
+        legend=false,
     )
 
-    hist!(
-        ax_hist,
+    p2 = histogram(
         df.best_walker;
-        bins = 0:64:2048,
-        color = (:tomato, 0.8),
-        strokecolor = :black,
-        strokewidth = 1.0,
+        title="Best Walker Firing Density",
+        xlabel="Best Walker Index",
+        ylabel="Count",
+        bins=0:64:2048,
+        xlims=(0, 2047),
+        color=:tomato,
+        alpha=0.8,
+        linecolor=:black,
+        linewidth=1.0,
+        legend=false,
     )
-    xlims!(ax_hist, 0, 2047)
 
-    return fig
+    return plot(p1, p2; layout=(2, 1), size=(1400, 900), dpi=180)
 end
 
 function main()
@@ -70,7 +64,7 @@ function main()
 
     df = load_tick_data(input_file)
     fig = build_dashboard(df)
-    save(output_file, fig; px_per_unit = 3)
+    savefig(fig, output_file)
 
     println("Loaded $(nrow(df)) tick rows from $(input_file)")
     println("Saved dashboard to $(output_file)")

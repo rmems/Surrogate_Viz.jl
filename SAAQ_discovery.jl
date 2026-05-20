@@ -1,6 +1,3 @@
-using Pkg
-Pkg.add(["SymbolicRegression", "CSV", "DataFrames", "Plots"])
-
 using SymbolicRegression
 using CSV
 using DataFrames
@@ -32,7 +29,7 @@ y = ideal_compression_y
 println("4. Launching Evolutionary Math Search (This will take a moment)...")
 # We give Julia basic math operations to build equation
 options = SymbolicRegression.Options(
-    binary_operators=[+,-,*,/],
+    binary_operators=[+, -, *, /],
     npopulations=20,
     parsimony=0.01 # This forces it to clean simple equations
 )
