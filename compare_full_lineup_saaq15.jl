@@ -64,7 +64,6 @@ function validate_pairs(runs::AbstractVector, models::AbstractVector{<:AbstractS
         if length(off_matches) == 0 || length(on_matches) == 0
             push!(problems, "missing run: model=$(slug) (off=$(length(off_matches)), on=$(length(on_matches)))")
         else
-            push!(available, slug)
             if length(off_matches) > 1
                 ids = join((m["id"] for m in off_matches), ", ")
                 push!(problems, "duplicate heartbeat_off runs: model=$(slug) ids=[$(ids)]")
@@ -72,6 +71,9 @@ function validate_pairs(runs::AbstractVector, models::AbstractVector{<:AbstractS
             if length(on_matches) > 1
                 ids = join((m["id"] for m in on_matches), ", ")
                 push!(problems, "duplicate heartbeat_on runs: model=$(slug) ids=[$(ids)]")
+            end
+            if length(off_matches) == 1 && length(on_matches) == 1
+                push!(available, slug)
             end
         end
     end
@@ -379,11 +381,11 @@ function main()
     runs = load_selected_runs(SELECTED_RUNS_PATH)
     campaign_runs = full_lineup_runs(runs)
     isempty(campaign_runs) && error("No runs found for campaign=$(CAMPAIGN), repeat_idx=$(REPEAT_IDX) in $(SELECTED_RUNS_PATH)")
-    validate_pairs(campaign_runs, MODEL_ORDER)
+    available = validate_pairs(campaign_runs, MODEL_ORDER)
 
     mkpath(OUTPUT_DIR)
     results = ModelResult[]
-    for slug in MODEL_ORDER
+    for slug in available
         push!(results, process_model(campaign_runs, slug))
     end
 

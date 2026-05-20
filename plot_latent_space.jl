@@ -1,5 +1,5 @@
 using DataFrames
-using CairoMakie
+using Plots
 
 const TICK_PATTERN = r"^tick=(\d+) best_walker=(\d+) elapsed_us=\d+$"
 
