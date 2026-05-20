@@ -1,4 +1,6 @@
 using DataFrames
+ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
+ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")
 using Plots
 
 const TICK_PATTERN = r"^tick=(\d+) best_walker=(\d+) elapsed_us=\d+$"
