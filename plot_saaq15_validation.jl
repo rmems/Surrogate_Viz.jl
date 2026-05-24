@@ -1,8 +1,11 @@
 using CSV
 using DataFrames
 using Dates
-using Plots
 using Random
+
+ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
+ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")
+using Plots
 
 const TICK_PATTERN = r"^tick=(\d+) best_walker=(\d+) elapsed_us=(\d+) heartbeat_signal=([-+0-9.eE]+) gpu_temp_c=([-+0-9.eE]+) gpu_power_w=([-+0-9.eE]+) cpu_tctl_c=([-+0-9.eE]+) cpu_package_power_w=([-+0-9.eE]+)$"
 
@@ -26,7 +29,7 @@ function model_name()
 end
 
 function default_dashboard_path()
-    stamp = Dates.format(now(), "yyyymmdd_HHMMSS")
+    stamp = Dates.format(Dates.now(), "yyyymmdd_HHMMSS")
     suffix = Random.randstring(6)
     dir = joinpath(@__DIR__, "outputs", model_name(), "dashboards", string(stamp, "_", suffix))
     mkpath(dir)
@@ -133,7 +136,7 @@ function build_dashboard(latent_df::DataFrame, tick_df::DataFrame)
         color = :navy,
         xlabel = "Tick",
         ylabel = "Hidden Population Rate (Hz)",
-        title = "SAAQ 1.5 Validation: Firing Rate vs Heartbeat",
+        title = "SAAQ 1.5 Validation: Firing Rate vs Control Signal",
     )
     plot!(p1, latent_df.tick, rate_overlay; label = "heartbeat_signal (scaled)", color = :crimson, linestyle = :dash)
 
@@ -144,7 +147,7 @@ function build_dashboard(latent_df::DataFrame, tick_df::DataFrame)
         color = :darkgreen,
         xlabel = "Tick",
         ylabel = "Routing Entropy",
-        title = "Routing Entropy vs Heartbeat",
+        title = "Routing Entropy vs Control Signal",
     )
     plot!(p2, latent_df.tick, entropy_overlay; label = "heartbeat_signal (scaled)", color = :crimson, linestyle = :dash)
 
@@ -156,7 +159,7 @@ function build_dashboard(latent_df::DataFrame, tick_df::DataFrame)
         markersize = 4,
         xlabel = "Tick",
         ylabel = "Best Walker",
-        title = "Walker Activity vs Heartbeat",
+        title = "Walker Activity vs Control Signal",
     )
     plot!(p3, tick_df.tick, walker_overlay; label = "heartbeat_signal (scaled)", color = :crimson, linestyle = :dash)
 

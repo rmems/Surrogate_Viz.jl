@@ -4,9 +4,9 @@ using Pkg
 Pkg.activate(@__DIR__)
 Pkg.instantiate()
 
-using SymbolicRegression
 using CSV
 using DataFrames
+using SymbolicRegression
 
 const REQUIRED_COLS = [
     :avg_pop_firing_rate_hz,
@@ -16,7 +16,7 @@ const REQUIRED_COLS = [
     :saaq_delta_q_target,
 ]
 
-csv_path = "snn_latent_telemetry.csv"
+csv_path = joinpath(@__DIR__, "outputs", "root_artifacts", "snn_latent_telemetry.csv")
 
 println("1) Loading latent telemetry from $(csv_path)...")
 if !isfile(csv_path)

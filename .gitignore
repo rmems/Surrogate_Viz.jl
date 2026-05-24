@@ -8,6 +8,7 @@ deps/deps.jl
 # IDE
 .vscode/
 .idea/
+.codex/
 *.swp
 *.swo
 *~
@@ -16,15 +17,22 @@ deps/deps.jl
 .DS_Store
 Thumbs.db
 
-# Data files (optional - uncomment if you want to exclude large data files)
-# *.csv
-# *.json
-# *.h5
+# Data files (root-level only — outputs/root_artifacts/ must stay tracked)
+/*.csv
+/*.json
+/*.h5
 
 # Temporary files
 *.tmp
 *.bak
 *~
+
+# Session logs (contain code snippets that confuse Julia LSP)
+session-ses_*.md
+
+# Root-level binary artifacts (should live in outputs/)
+/*.png
+/*.txt
 
 # Build artifacts
 build/
@@ -36,6 +44,7 @@ dist/
 
 # Generated outputs (dashboards, plots, reports)
 outputs/*
+!outputs/root_artifacts/
 
 # Imported corinth-canal artifacts (symlinks/copies from ../corinth-canal/artifacts)
 data/corinth_runs/*
