@@ -3,12 +3,12 @@ using DataFrames
 using Dates
 using TOML
 
+include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
+using .SurrogateViz
+
 ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")
 using Plots
-
-include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
-using .SurrogateViz
 
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")

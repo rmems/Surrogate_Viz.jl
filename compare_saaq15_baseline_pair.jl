@@ -2,16 +2,16 @@ using CSV
 using DataFrames
 using TOML
 
+include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
+using .SurrogateViz
+
 ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")
 using Plots
 
-include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
-using .SurrogateViz
-
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")
-const IMPORT_ROOT = SurrogateViz.IMPORT_ROOT
+const IMPORT_ROOT = joinpath(REPO_ROOT, "data", "corinth_runs")
 const OUTPUT_DIR = joinpath(REPO_ROOT, "outputs", "olmoe-1b-7b", "dashboards")
 const REPORT_PATH = joinpath(OUTPUT_DIR, "saaq15_re4_heartbeat_comparison.md")
 const PLOT_PATH = joinpath(OUTPUT_DIR, "saaq15_re4_heartbeat_comparison.png")
