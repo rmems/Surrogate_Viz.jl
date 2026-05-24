@@ -1,6 +1,6 @@
 # Dormant harness for latent SAAQ equation discovery using true SNN signals
 
-using Pkg
+using SymbolicRegression.Pkg
 Pkg.activate(@__DIR__)
 Pkg.instantiate()
 

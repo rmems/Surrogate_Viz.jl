@@ -2,10 +2,10 @@ using CSV
 using DataFrames
 ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")
-using Dates
 using Plots
-using Statistics
-using TOML
+using Plots.Dates
+using Plots.Statistics
+using Plots.TOML
 
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")
