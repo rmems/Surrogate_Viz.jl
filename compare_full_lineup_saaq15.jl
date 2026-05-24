@@ -3,9 +3,9 @@ using DataFrames
 ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")
 using Plots
-using Plots.Dates
-using Plots.Statistics
-using Plots.TOML
+using Dates
+using Statistics
+using TOML
 
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")
@@ -61,35 +61,49 @@ function validate_pairs(runs::AbstractVector, models::AbstractVector{<:AbstractS
     for slug in models
         off_matches = filter(run -> run["model"] == slug && run["heartbeat"] == "heartbeat_off", runs)
         on_matches = filter(run -> run["model"] == slug && run["heartbeat"] == "heartbeat_on", runs)
-        if length(off_matches) == 0 || length(on_matches) == 0
-            push!(problems, "missing run: model=$(slug) (off=$(length(off_matches)), on=$(length(on_matches)))")
-        else
-            if length(off_matches) > 1
-                ids = join((m["id"] for m in off_matches), ", ")
-                push!(problems, "duplicate heartbeat_off runs: model=$(slug) ids=[$(ids)]")
-            end
-            if length(on_matches) > 1
-                ids = join((m["id"] for m in on_matches), ", ")
-                push!(problems, "duplicate heartbeat_on runs: model=$(slug) ids=[$(ids)]")
-            end
-            if length(off_matches) == 1 && length(on_matches) == 1
-                push!(available, slug)
-            end
+length(off_matches) == 0 && length(on_matches) == 0 && continue
+        if length(off_matches) == 0
+            push!(problems, "missing run: model=$(slug) (off=0, on=$(length(on_matches)))")
+            continue
         end
+        if length(on_matches) == 0
+            push!(problems, "missing run: model=$(slug) (off=$(length(off_matches)), on=0)")
+            continue
+        end
+        if length(off_matches) > 1
+            ids = join((m["id"] for m in off_matches), ", ")
+            push!(problems, "duplicate heartbeat_off runs: model=$(slug) ids=[$(ids)]")
+        end
+        if length(on_matches) > 1
+            ids = join((m["id"] for m in on_matches), ", ")
+            push!(problems, "duplicate heartbeat_on runs: model=$(slug) ids=[$(ids)]")
+        end
+        push!(available, slug)
+        if length(on_matches) == 0
+            push!(problems, "missing run: model=$(slug) (off=$(length(off_matches)), on=0)")
+            continue
+        end
+        if length(off_matches) > 1
+            ids = join((m["id"] for m in off_matches), ", ")
+            push!(problems, "duplicate heartbeat_off runs: model=$(slug) ids=[$(ids)]")
+        end
+        if length(on_matches) > 1
+            ids = join((m["id"] for m in on_matches), ", ")
+            push!(problems, "duplicate heartbeat_on runs: model=$(slug) ids=[$(ids)]")
+        end
+        push!(available, slug)
     end
 
     for p in problems
         @warn "Model validation: $p"
     end
 
-    if isempty(available)
-        error(
-            "compare_full_lineup_saaq15.jl: no models with complete (off+on) runs found. " *
-            "Filter: campaign=$(CAMPAIGN), repeat_idx=$(REPEAT_IDX), " *
-            "telemetry_source=$(TELEMETRY_SOURCE), rule=$(RULE). " *
-            "Run `import_corinth_runs.jl` first.",
-        )
-    end
+    isempty(available) && error(
+        "compare_full_lineup_saaq15.jl: no models with complete (off+on) runs found. " *
+        "Filter: campaign=$(CAMPAIGN), repeat_idx=$(REPEAT_IDX), " *
+        "telemetry_source=$(TELEMETRY_SOURCE), rule=$(RULE). " *
+        "Run `import_corinth_runs.jl` first.",
+    )
 
     return available
 end
