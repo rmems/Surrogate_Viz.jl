@@ -18,7 +18,7 @@ deps/deps.jl
 Thumbs.db
 
 # Data files
-*.csv
+/*.csv
 *.json
 *.h5
 
@@ -31,8 +31,8 @@ Thumbs.db
 session-ses_*.md
 
 # Root-level binary artifacts (should live in outputs/)
-*.png
-*.txt
+/*.png
+/*.txt
 
 # Build artifacts
 build/

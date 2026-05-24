@@ -11,7 +11,6 @@ using Plots
 
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")
-const IMPORT_ROOT = joinpath(REPO_ROOT, "data", "corinth_runs")
 const OUTPUT_DIR = joinpath(REPO_ROOT, "outputs", "olmoe-1b-7b", "dashboards")
 const REPORT_PATH = joinpath(OUTPUT_DIR, "saaq15_re4_heartbeat_comparison.md")
 const PLOT_PATH = joinpath(OUTPUT_DIR, "saaq15_re4_heartbeat_comparison.png")

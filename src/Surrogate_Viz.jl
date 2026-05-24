@@ -6,7 +6,7 @@ using CSV
 using DataFrames
 using Statistics
 
-const IMPORT_ROOT = joinpath(@__DIR__, "..", "data", "corinth_runs")
+const IMPORT_ROOT = normpath(joinpath(@__DIR__, "..", "data", "corinth_runs"))
 
 function imported_latent_path(run::Dict{String,<:Any})
     joinpath(IMPORT_ROOT, run["model"], run["telemetry_source"], run["heartbeat"], run["id"], "latent_telemetry.csv")
