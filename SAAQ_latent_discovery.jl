@@ -16,7 +16,7 @@ const REQUIRED_COLS = [
     :saaq_delta_q_target,
 ]
 
-csv_path = joinpath(@__DIR__, "snn_latent_telemetry.csv")
+csv_path = joinpath(@__DIR__, "outputs", "root_artifacts", "snn_latent_telemetry.csv")
 
 println("1) Loading latent telemetry from $(csv_path)...")
 if !isfile(csv_path)

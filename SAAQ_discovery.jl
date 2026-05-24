@@ -4,7 +4,7 @@ using DataFrames
 
 println("1. Loading raw Ship of Theseus telemetry...")
 # I just added telemetry.csv from the gaming-telemetry repo
-raw_data = CSV.read(joinpath(@__DIR__, "telemetry.csv"), DataFrame)
+raw_data = CSV.read(joinpath(@__DIR__, "outputs", "root_artifacts", "telemetry.csv"), DataFrame)
 
 # To start out let's keep the test fast
 df = first(raw_data, 1000)

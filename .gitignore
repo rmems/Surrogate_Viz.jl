@@ -17,10 +17,10 @@ deps/deps.jl
 .DS_Store
 Thumbs.db
 
-# Data files
+# Data files (root-level only — outputs/root_artifacts/ must stay tracked)
 /*.csv
-*.json
-*.h5
+/*.json
+/*.h5
 
 # Temporary files
 *.tmp
