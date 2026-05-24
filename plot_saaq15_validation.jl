@@ -29,7 +29,7 @@ function model_name()
 end
 
 function default_dashboard_path()
-    stamp = Dates.format(now(), "yyyymmdd_HHMMSS")
+    stamp = Dates.format(Dates.now(), "yyyymmdd_HHMMSS")
     suffix = Random.randstring(6)
     dir = joinpath(@__DIR__, "outputs", model_name(), "dashboards", string(stamp, "_", suffix))
     mkpath(dir)

@@ -71,7 +71,7 @@ function summarise_run(df::DataFrame, run::Dict{String,<:Any}, delta_col::Symbol
         "rows" => nrow(df),
         "first_ms" => to_int_ms(first(df.timestamp_ms)),
         "last_ms" => to_int_ms(last(df.timestamp_ms)),
-        "mean_delta" => mean(delta_values),
+        "mean_delta" => Statistics.mean(delta_values),
         "max_delta" => maximum(delta_values),
         "final_delta" => last(delta_values),
     )
@@ -82,7 +82,7 @@ function summarise_run(df::DataFrame, run::Dict{String,<:Any}, delta_col::Symbol
             row["mean_entropy"] = missing
             row["final_entropy"] = missing
         else
-            row["mean_entropy"] = mean(entropy_values)
+            row["mean_entropy"] = Statistics.mean(entropy_values)
             row["final_entropy"] = last(entropy_values)
         end
     else
@@ -105,14 +105,14 @@ function pairwise_summary(off_df::DataFrame, on_df::DataFrame, delta_col::Symbol
 
     summary = Dict{String,Any}(
         "paired_rows" => nrow(joined),
-        "mean_delta_on_minus_off" => mean(joined.delta_on_minus_off),
+        "mean_delta_on_minus_off" => Statistics.mean(joined.delta_on_minus_off),
         "max_abs_delta_on_minus_off" => maximum(abs.(joined.delta_on_minus_off)),
         "final_delta_on_minus_off" => last(joined.delta_on_minus_off),
     )
 
     if entropy_col !== nothing
         joined.entropy_on_minus_off = joined.entropy_on .- joined.entropy_off
-        summary["mean_entropy_on_minus_off"] = mean(joined.entropy_on_minus_off)
+        summary["mean_entropy_on_minus_off"] = Statistics.mean(joined.entropy_on_minus_off)
         summary["final_entropy_on_minus_off"] = last(joined.entropy_on_minus_off)
     end
 
