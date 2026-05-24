@@ -1,9 +1,9 @@
 # Julia specific
+Manifest.toml
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
 deps/deps.jl
-Manifest.toml
 
 # IDE
 .vscode/
@@ -33,3 +33,26 @@ dist/
 *.so
 *.dylib
 *.dll
+
+# Generated outputs (dashboards, plots, reports)
+outputs/*
+
+# Imported corinth-canal artifacts (symlinks/copies from ../corinth-canal/artifacts)
+data/corinth_runs/*
+!data/corinth_runs/.gitkeep
+!data/corinth_runs/imported_runs_index.csv
+
+# Model data directories (GGUF checkpoints, telemetry CSVs — gitignored, dirs preserved via .gitkeep)
+data/DeepSeek-Coder-V2-Lite-Instruct-Q6_K_L.gguf/*
+data/gemma-4-26B-A4B-it-UD-IQ4_NL.gguf/*
+data/L3.2-8X3B-MOE-Dark-Champion-Inst-18.4B-uncen-ablit_D_AU-q5_k_m.gguf/*
+data/olmoe-1b-7b/*
+data/qwen3-moe-i1-GGUF IQ3_M.gguf/*
+data/zaya1_8b_q8_0/*
+data/glm46v_flash_q8_0/*
+data/kimi_vl_a3b_q6_k/*
+data/marco_nano_base_q8_0/*
+!data/*/.gitkeep
+
+# Selected runs manifest (machine-local absolute paths)
+data/selected_runs.toml

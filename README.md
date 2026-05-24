@@ -7,14 +7,22 @@ hall-of-fame discoveries plus heartbeat validation dashboards.
 
 ## MoE Target Models
 
-Current experimentation targets the following five mixture-of-experts
-instructor models:
+Current experimentation targets nine mixture-of-experts instructor
+models, organized by corinth-canal lineup slug:
 
-1. `DeepSeek-Coder-V2-Lite-Instruct-Q6_K_L.gguf`
-2. `gemma-4-26B-A4B-it-UD-IQ4_NL.gguf`
-3. `L3.2-8X3B-MOE-Dark-Champion-Inst-18.4B-uncen-ablit_D_AU-q5_k_m.gguf`
-4. `olmoe-1b-7b` (default)
-5. `qwen3-moe-i1-GGUF IQ3_M.gguf`
+| # | corinth-canal slug | GGUF / local name |
+|---|-------------------|-------------------|
+| 1 | `olmoe_baseline` | `olmoe-1b-7b` (default) |
+| 2 | `qwen3_moe_i1_iq3_m` | `qwen3-moe-i1-GGUF IQ3_M.gguf` |
+| 3 | `gemma4_26b_a4b_iq4_nl` | `gemma-4-26B-A4B-it-UD-IQ4_NL.gguf` |
+| 4 | `deepseek_coder_v2_lite_q6_k_l` | `DeepSeek-Coder-V2-Lite-Instruct-Q6_K_L.gguf` |
+| 5 | `llama_3_2_dark_champion_q5_k_m` | `L3.2-8X3B-MOE-Dark-Champion-Inst-18.4B-uncen-ablit_D_AU-q5_k_m.gguf` |
+| 6 | `zaya1_8b_q8_0` | Zaya 1 (Abiray/ZAYA1-8B-GGUF) |
+| 7 | `glm46v_flash_q8_0` | GLM-4.6V-Flash |
+| 8 | `kimi_vl_a3b_q6_k` | Kimi-VL-A3B-Instruct |
+| 9 | `marco_nano_base_q8_0` | Marco-Nano-Base |
+
+Models 6–9 were onboarded in [corinth-canal#68](https://github.com/rmems/corinth-canal/pull/68).
 
 Select the active model at runtime with the `MODEL` env var, e.g.
 `MODEL="qwen3-moe-i1-GGUF IQ3_M.gguf" julia plot_saaq15_validation.jl`.
@@ -64,12 +72,11 @@ commit raw simulator CSVs from this side.
 
 `compare_full_lineup_saaq15.jl` reads `data/selected_runs.toml` for entries
 tagged `campaign = "full_lineup"`, repeat-0, with telemetry source
-`csv_re4_path_tracing_telemetry` and rule `SaaqV1_5SqrtRate`. For each of the
-five MoE model slugs (`olmoe_baseline`, `qwen3_moe_i1_iq3_m`,
-`gemma4_26b_a4b_iq4_nl`, `deepseek_coder_v2_lite_q6_k_l`,
-`llama_3_2_dark_champion_q5_k_m`) it pairs the heartbeat_off vs heartbeat_on
-runs, writes one PNG per model and a single combined markdown report under
-`outputs/full_lineup/`.
+`csv_re4_path_tracing_telemetry` and rule `SaaqV1_5SqrtRate`. For each
+available model slug (see model table above) it pairs the heartbeat_off vs
+heartbeat_on runs, writes one PNG per model and a single combined markdown
+report under `outputs/full_lineup/`. Models without complete paired runs
+are gracefully skipped with a warning.
 
 ```
 julia --project=. import_corinth_runs.jl
