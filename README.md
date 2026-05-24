@@ -3,7 +3,7 @@
 Julia-based SymbolicRegression + visualization workbench for
 [corinth-canal](../corinth-canal) SAAQ telemetry. Consumes dual-SAAQ CSVs
 and tick telemetry emitted by the Rust simulator and produces SR.jl
-hall-of-fame discoveries plus heartbeat validation dashboards.
+hall-of-fame discoveries plus paired-run validation dashboards.
 
 ## MoE Target Models
 
@@ -33,7 +33,7 @@ Select the active model at runtime with the `MODEL` env var, e.g.
 Surrogate_Viz.jl/
 ├── SAAQ_discovery.jl         # SR.jl over raw RE4 telemetry
 ├── SAAQ_latent_discovery.jl  # SR.jl over 508-neuron latent telemetry
-├── plot_saaq15_validation.jl # Heartbeat/SAAQ 1.5 validation dashboard
+├── plot_saaq15_validation.jl # SAAQ 1.5 paired-run validation dashboard
 ├── plot_latent_space.jl      # Latent space exploration plot
 ├── data/                     # (gitignored, dirs kept via .gitkeep)
 │   ├── DeepSeek-Coder-V2-Lite-Instruct-Q6_K_L.gguf/
@@ -73,8 +73,8 @@ commit raw simulator CSVs from this side.
 `compare_full_lineup_saaq15.jl` reads `data/selected_runs.toml` for entries
 tagged `campaign = "full_lineup"`, repeat-0, with telemetry source
 `csv_re4_path_tracing_telemetry` and rule `SaaqV1_5SqrtRate`. For each
-available model slug (see model table above) it pairs the heartbeat_off vs
-heartbeat_on runs, writes one PNG per model and a single combined markdown
+available model slug (see model table above) it pairs the control-off vs
+control-on runs, writes one PNG per model and a single combined markdown
 report under `outputs/full_lineup/`. Models without complete paired runs
 are gracefully skipped with a warning.
 
@@ -106,8 +106,8 @@ Imports prefer symlinks for the three source files
 back to copies if symlinks are unavailable. Re-import in overwrite mode
 with `FORCE_IMPORT=true julia import_corinth_runs.jl`.
 
-After importing, compare the blessed OLMoE RE4 SAAQ 1.5 heartbeat pair
-for repeat `0` with:
+After importing, compare the blessed OLMoE RE4 SAAQ 1.5 paired-run
+baseline for repeat `0` with:
 
 ```bash
 julia compare_saaq15_baseline_pair.jl

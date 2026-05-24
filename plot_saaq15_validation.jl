@@ -133,7 +133,7 @@ function build_dashboard(latent_df::DataFrame, tick_df::DataFrame)
         color = :navy,
         xlabel = "Tick",
         ylabel = "Hidden Population Rate (Hz)",
-        title = "SAAQ 1.5 Validation: Firing Rate vs Heartbeat",
+        title = "SAAQ 1.5 Validation: Firing Rate vs Control Signal",
     )
     plot!(p1, latent_df.tick, rate_overlay; label = "heartbeat_signal (scaled)", color = :crimson, linestyle = :dash)
 
@@ -144,7 +144,7 @@ function build_dashboard(latent_df::DataFrame, tick_df::DataFrame)
         color = :darkgreen,
         xlabel = "Tick",
         ylabel = "Routing Entropy",
-        title = "Routing Entropy vs Heartbeat",
+        title = "Routing Entropy vs Control Signal",
     )
     plot!(p2, latent_df.tick, entropy_overlay; label = "heartbeat_signal (scaled)", color = :crimson, linestyle = :dash)
 
@@ -156,7 +156,7 @@ function build_dashboard(latent_df::DataFrame, tick_df::DataFrame)
         markersize = 4,
         xlabel = "Tick",
         ylabel = "Best Walker",
-        title = "Walker Activity vs Heartbeat",
+        title = "Walker Activity vs Control Signal",
     )
     plot!(p3, tick_df.tick, walker_overlay; label = "heartbeat_signal (scaled)", color = :crimson, linestyle = :dash)
 
