@@ -73,7 +73,7 @@ function summarise_run(df::DataFrame, run::Dict{String,<:Any}, delta_col::Symbol
         "last_ms" => to_int_ms(last(df.timestamp_ms)),
         "mean_delta" => Statistics.mean(delta_values),
         "max_delta" => maximum(delta_values),
-        "final_delta" => last(delta_values),
+        "final_delta" => Float64(df[end, delta_col]),
     )
 
     if entropy_col !== nothing
@@ -83,7 +83,7 @@ function summarise_run(df::DataFrame, run::Dict{String,<:Any}, delta_col::Symbol
             row["final_entropy"] = missing
         else
             row["mean_entropy"] = Statistics.mean(entropy_values)
-            row["final_entropy"] = last(entropy_values)
+            row["final_entropy"] = Float64(df[end, entropy_col])
         end
     else
         row["mean_entropy"] = missing
@@ -122,6 +122,7 @@ end
 fmt(x::Missing) = "-"
 function fmt(x::Real)
     rounded = round(Float64(x); digits = 6)
+    rounded == 0.0 && (rounded = 0.0)  # normalize -0.0 -> 0.0
     return string(rounded)
 end
 fmt(x) = string(x)
