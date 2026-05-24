@@ -3,8 +3,8 @@ using DataFrames
 ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")
 using Plots
-using Plots.Statistics
-using Plots.TOML
+using Statistics
+using TOML
 
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")
