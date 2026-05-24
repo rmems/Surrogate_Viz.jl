@@ -61,36 +61,14 @@ function validate_pairs(runs::AbstractVector, models::AbstractVector{<:AbstractS
     for slug in models
         off_matches = filter(run -> run["model"] == slug && run["heartbeat"] == "heartbeat_off", runs)
         on_matches = filter(run -> run["model"] == slug && run["heartbeat"] == "heartbeat_on", runs)
-length(off_matches) == 0 && length(on_matches) == 0 && continue
-        if length(off_matches) == 0
-            push!(problems, "missing run: model=$(slug) (off=0, on=$(length(on_matches)))")
-            continue
-        end
-        if length(on_matches) == 0
-            push!(problems, "missing run: model=$(slug) (off=$(length(off_matches)), on=0)")
-            continue
-        end
-        if length(off_matches) > 1
-            ids = join((m["id"] for m in off_matches), ", ")
-            push!(problems, "duplicate heartbeat_off runs: model=$(slug) ids=[$(ids)]")
-        end
-        if length(on_matches) > 1
-            ids = join((m["id"] for m in on_matches), ", ")
-            push!(problems, "duplicate heartbeat_on runs: model=$(slug) ids=[$(ids)]")
-        end
-        push!(available, slug)
-        if length(on_matches) == 0
-            push!(problems, "missing run: model=$(slug) (off=$(length(off_matches)), on=0)")
-            continue
-        end
-        if length(off_matches) > 1
-            ids = join((m["id"] for m in off_matches), ", ")
-            push!(problems, "duplicate heartbeat_off runs: model=$(slug) ids=[$(ids)]")
-        end
-        if length(on_matches) > 1
-            ids = join((m["id"] for m in on_matches), ", ")
-            push!(problems, "duplicate heartbeat_on runs: model=$(slug) ids=[$(ids)]")
-        end
+
+        length(off_matches) == 0 && length(on_matches) == 0 && continue
+        length(off_matches) == 0 && push!(problems, "missing run: model=$(slug) (off=0, on=$(length(on_matches)))") && continue
+        length(on_matches) == 0 && push!(problems, "missing run: model=$(slug) (off=$(length(off_matches)), on=0)") && continue
+
+        length(off_matches) > 1 && push!(problems, "duplicate heartbeat_off runs: model=$(slug) ids=[$(join((m["id"] for m in off_matches), ", "))]")
+        length(on_matches) > 1 && push!(problems, "duplicate heartbeat_on runs: model=$(slug) ids=[$(join((m["id"] for m in on_matches), ", "))]")
+
         push!(available, slug)
     end
 
