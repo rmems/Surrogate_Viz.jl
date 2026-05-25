@@ -27,6 +27,12 @@ Models 6–9 were onboarded in [corinth-canal#68](https://github.com/rmems/corin
 Select the active model at runtime with the `MODEL` env var, e.g.
 `MODEL="qwen3-moe-i1-GGUF IQ3_M.gguf" julia plot_saaq15_validation.jl`.
 
+> **Note on terminology:** The simulator emits a `heartbeat_signal` column and
+> uses `heartbeat_off` / `heartbeat_on` as condition labels in the run manifest.
+> These are **simulator implementation details**, not proven correctness
+> conditions. This repo uses the neutral terms *control-off* / *control-on* and
+> *paired-run* in all user-facing labels, plots, and reports.
+
 ## Project Structure
 
 ```
@@ -115,3 +121,16 @@ julia compare_saaq15_baseline_pair.jl
 
 This writes a compact PNG plus markdown summary under
 `outputs/olmoe-1b-7b/dashboards/`.
+
+## Tests
+
+Run the test suite from the repo root:
+
+```bash
+julia --project=. -e 'using Pkg; Pkg.test()'
+```
+
+Tests cover the `SurrogateViz` module's shared utilities — import paths,
+telemetry column detection, paired-run comparison mechanics, and number
+formatting — using synthetic neutral-paired-run fixtures. No simulator data
+or heartbeat-specific behavior is required.
