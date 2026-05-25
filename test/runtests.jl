@@ -49,22 +49,10 @@ end
     @test SurrogateViz.detect_delta_column([both_df]) == :saaq_delta_q_v15_target
     @test SurrogateViz.detect_delta_column([legacy_df]) == :saaq_delta_q_legacy_target
 
-    empty_frames_error = try
-        SurrogateViz.detect_delta_column(DataFrame[])
-        false
-    catch e
-        e isa ErrorException
-    end
-    @test empty_frames_error
+    @test_throws ErrorException SurrogateViz.detect_delta_column(DataFrame[])
 
     no_delta_df = DataFrame(timestamp_ms = [0], avg_pop_firing_rate_hz = [1.0])
-    no_delta_error = try
-        SurrogateViz.detect_delta_column([no_delta_df])
-        false
-    catch e
-        e isa ErrorException
-    end
-    @test no_delta_error
+    @test_throws ErrorException SurrogateViz.detect_delta_column([no_delta_df])
 end
 
 @testset "maybe_entropy_column" begin
@@ -153,6 +141,9 @@ end
     @test summary["paired_rows"] == 3
     @test summary["mean_delta_on_minus_off"] ≈ 1.0
     @test haskey(summary, "mean_entropy_on_minus_off")
+    @test summary["mean_entropy_on_minus_off"] ≈ 0.325
+    @test haskey(summary, "final_entropy_on_minus_off")
+    @test summary["final_entropy_on_minus_off"] ≈ 0.3
 end
 
 @testset "pairwise_summary — no entropy column" begin

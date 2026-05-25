@@ -30,9 +30,10 @@ Select the active model at runtime with the `MODEL` env var, e.g.
 > **Note on terminology:** The simulator emits a `heartbeat_signal` column and
 > uses `heartbeat_off` / `heartbeat_on` as condition labels in the run manifest.
 > These are **simulator implementation details**, not proven correctness
-> conditions. This repo uses the neutral terms *control-off* / *control-on* and
-> *paired-run* in user-facing labels and plots where possible, while some
-> generated reports may preserve raw manifest condition values for traceability.
+> conditions. Plot titles and report headers use neutral terms (*control-off* /
+> *control-on*, *paired-run*). Markdown report tables still display the manifest
+> field values (`heartbeat_off`, `heartbeat_on`) in the Condition column since
+> those are the actual run identifiers from `corinth-canal`.
 
 ## Project Structure
 
