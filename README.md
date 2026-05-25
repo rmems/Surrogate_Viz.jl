@@ -31,7 +31,8 @@ Select the active model at runtime with the `MODEL` env var, e.g.
 > uses `heartbeat_off` / `heartbeat_on` as condition labels in the run manifest.
 > These are **simulator implementation details**, not proven correctness
 > conditions. This repo uses the neutral terms *control-off* / *control-on* and
-> *paired-run* in all user-facing labels, plots, and reports.
+> *paired-run* in user-facing labels and plots where possible, while some
+> generated reports may preserve raw manifest condition values for traceability.
 
 ## Project Structure
 
