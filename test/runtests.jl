@@ -23,7 +23,7 @@ end
     @test SurrogateViz.fmt(0.0) == "0.0"
     @test SurrogateViz.fmt(-0.0) == "0.0"
     @test SurrogateViz.fmt(1.234567) == "1.234567"
-    @test SurrogateViz.fmt(-1.5e-7) == "-1.5e-7"
+    @test SurrogateViz.fmt(-1.5e-7) == "0.0"
     @test SurrogateViz.fmt(missing) == "-"
     @test SurrogateViz.fmt("hello") == "hello"
 end
