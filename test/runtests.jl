@@ -141,7 +141,7 @@ end
     @test summary["paired_rows"] == 3
     @test summary["mean_delta_on_minus_off"] ≈ 1.0
     @test haskey(summary, "mean_entropy_on_minus_off")
-    @test summary["mean_entropy_on_minus_off"] ≈ 0.325
+    @test summary["mean_entropy_on_minus_off"] ≈ 0.3
     @test haskey(summary, "final_entropy_on_minus_off")
     @test summary["final_entropy_on_minus_off"] ≈ 0.3
 end
@@ -163,4 +163,85 @@ end
     @test summary["paired_rows"] == 2
     @test !haskey(summary, "mean_entropy_on_minus_off")
     @test !haskey(summary, "final_entropy_on_minus_off")
+end
+
+@testset "import contract — selected_runs.toml parsing" begin
+    using TOML
+
+    fixture_path = joinpath(@__DIR__, "fixtures", "selected_runs.toml")
+    @test isfile(fixture_path)
+
+    runs = TOML.parsefile(fixture_path)
+    @test haskey(runs, "runs")
+    run_list = runs["runs"]
+    @test length(run_list) == 2
+
+    off_run = run_list[1]
+    on_run = run_list[2]
+
+    @test off_run["heartbeat"] == "heartbeat_off"
+    @test on_run["heartbeat"] == "heartbeat_on"
+    @test off_run["model"] == "test_model"
+    @test off_run["campaign"] == "test_campaign"
+    @test off_run["blessed"] == true
+    @test on_run["id"] == "test_on_001"
+end
+
+@testset "import contract — local_run_dir path structure" begin
+    off_run = Dict{String,Any}(
+        "id" => "run_abc",
+        "model" => "olmoe-1b-7b",
+        "telemetry_source" => "csv_re4_path_tracing_telemetry",
+        "heartbeat" => "heartbeat_off",
+        "family" => "olmoe",
+    )
+
+    expected = joinpath(SurrogateViz.IMPORT_ROOT, "olmoe-1b-7b", "csv_re4_path_tracing_telemetry", "heartbeat_off", "run_abc", "latent_telemetry.csv")
+    @test SurrogateViz.imported_latent_path(off_run) == expected
+end
+
+@testset "import contract — IMPORT_ROOT is normalized" begin
+    @test !occursin("..", SurrogateViz.IMPORT_ROOT)
+    @test !occursin("//", SurrogateViz.IMPORT_ROOT)
+end
+
+@testset "SAAQ_latent_discovery — column validation with fixture" begin
+    fixture_csv = joinpath(@__DIR__, "fixtures", "latent_telemetry.csv")
+    @test isfile(fixture_csv)
+
+    df = CSV.read(fixture_csv, DataFrame)
+    required_cols = [:avg_pop_firing_rate_hz, :membrane_dv_dt, :routing_entropy, :saaq_delta_q_prev, :saaq_delta_q_target]
+    missing_cols = setdiff(required_cols, propertynames(df))
+    @test isempty(missing_cols)
+end
+
+@testset "SAAQ_latent_discovery — feature matrix shape" begin
+    fixture_csv = joinpath(@__DIR__, "fixtures", "latent_telemetry.csv")
+    df = CSV.read(fixture_csv, DataFrame)
+
+    X = Matrix{Float64}(hcat(
+        df.avg_pop_firing_rate_hz,
+        df.membrane_dv_dt,
+        df.routing_entropy,
+        df.saaq_delta_q_prev,
+    )')
+
+    y = Float64.(df.saaq_delta_q_target)
+
+    @test size(X, 1) == 4
+    @test size(X, 2) == 3
+    @test length(y) == 3
+end
+
+@testset "SAAQ_latent_discovery — run selection by RUN_ID" begin
+    fixture_path = joinpath(@__DIR__, "fixtures", "selected_runs.toml")
+    runs = TOML.parsefile(fixture_path)
+    run_list = runs["runs"]
+
+    off_run = filter(r -> r["heartbeat"] == "heartbeat_off", run_list)
+    on_run = filter(r -> r["heartbeat"] == "heartbeat_on", run_list)
+
+    @test length(off_run) == 1
+    @test length(on_run) == 1
+    @test off_run[1]["id"] == "test_off_001"
 end

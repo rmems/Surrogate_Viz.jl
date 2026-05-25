@@ -1,0 +1,29 @@
+[[runs]]
+id = "test_off_001"
+model = "test_model"
+family = "test"
+telemetry_source = "csv_re4_path_tracing_telemetry"
+heartbeat = "heartbeat_off"
+repeat_idx = 0
+rule = "SaaqV1_5SqrtRate"
+campaign = "test_campaign"
+blessed = true
+source_run_dir = "/dev/null"
+latent_telemetry_csv = ""
+tick_telemetry_txt = ""
+summary_json = ""
+
+[[runs]]
+id = "test_on_001"
+model = "test_model"
+family = "test"
+telemetry_source = "csv_re4_path_tracing_telemetry"
+heartbeat = "heartbeat_on"
+repeat_idx = 0
+rule = "SaaqV1_5SqrtRate"
+campaign = "test_campaign"
+blessed = true
+source_run_dir = "/dev/null"
+latent_telemetry_csv = ""
+tick_telemetry_txt = ""
+summary_json = ""
