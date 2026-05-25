@@ -2,7 +2,7 @@
 #
 # Selects runs by RUN_ID or MODEL/CAMPAIGN/HEARTBEAT/REPEAT_IDX from
 # data/selected_runs.toml, loads their latent telemetry, validates columns,
-# and runs SymbolicRegression.jl (if available).
+# and runs SymbolicRegression.jl.
 #
 # Outputs go to outputs/<model>/sr_results/<run_id>/.
 
@@ -12,6 +12,7 @@ Pkg.instantiate()
 
 using CSV
 using DataFrames
+using SymbolicRegression
 using TOML
 
 include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
@@ -112,25 +113,21 @@ function write_metadata(run::Dict{String,<:Any}, out_dir::AbstractString;
     )
     merge!(meta, options_dict)
     open(joinpath(out_dir, "sr_manifest.json"), "w") do io
-        # Lightweight JSON write without JSON dependency
-        for (i, (k, v)) in enumerate(pairs(meta))
-            val = v isa Vector ? "[\"" * join(string.(v), "\",\"") * "\"]" :
+        println(io, "{")
+        items = collect(pairs(meta))
+        for (i, (k, v)) in enumerate(items)
+            val = v isa Vector ? (isempty(v) ? "[]" : "[\"" * join(string.(v), "\",\"") * "\"]") :
                   v isa Bool ? (v ? "true" : "false") :
                   v isa Number ? string(v) :
-                  "\"" * string(v) * "\""
-            println(io, "\"$(k)\": $(val)$(i < length(meta) ? "," : "")")
+                  "\"" * replace(string(v), "\"" => "\\\"") * "\""
+            println(io, "  \"$(k)\": $(val)$(i < length(items) ? "," : "")")
         end
+        println(io, "}")
     end
     return meta
 end
 
 function run_sr(X, y; niterations::Int = 30, options_kwargs...)
-    try
-        @eval using SymbolicRegression
-    catch
-        @warn "SymbolicRegression.jl not available. Skipping SR search. Install with `using Pkg; Pkg.add(\"SymbolicRegression\")`"
-        return nothing
-    end
     opts = Options(; options_kwargs...)
     hof = equation_search(X, y; niterations = niterations, options = opts,
         variable_names = string.(FEATURE_COLS))
@@ -185,8 +182,8 @@ function main()
         write_metadata(run, out_dir;
             niterations = niterations,
             options_dict = Dict{String,Any}(
-                "binary_operators" => string.([+, -, *, /]),
-                "unary_operators" => string.([exp, sqrt,^2]),
+                "binary_operators" => ["+", "-", "*", "/"],
+                "unary_operators" => ["exp", "sqrt", "square"],
                 "maxsize" => 15,
                 "parsimony" => 0.01,
             ),
@@ -198,22 +195,20 @@ function main()
             hof = run_sr(X, y;
                 niterations = niterations,
                 binary_operators = [+, -, *, /],
-                unary_operators = [exp, sqrt],
+                unary_operators = [exp, sqrt, square],
                 maxsize = 15,
                 parsimony = 0.01,
                 npopulations = 20,
             )
-            if hof !== nothing
-                println("\n=== Pareto front for $(run["id"]) ===")
-                dominating = calculate_pareto_frontier(hof)
+            println("\n=== Pareto front for $(run["id"]) ===")
+            dominating = calculate_pareto_frontier(hof)
+            for member in dominating
+                println("Loss: $(member.loss)  Complexity: $(member.complexity)  Eq: $(member.tree)")
+            end
+            open(joinpath(out_dir, "pareto_front.csv"), "w") do io
+                println(io, "complexity,loss,equation")
                 for member in dominating
-                    println("Loss: $(member.loss)  Complexity: $(member.complexity)  Eq: $(member.tree)")
-                end
-                open(joinpath(out_dir, "pareto_front.csv"), "w") do io
-                    println(io, "complexity,loss,equation")
-                    for member in dominating
-                        println(io, "$(member.complexity),$(member.loss),$(member.tree)")
-                    end
+                    println(io, "$(member.complexity),$(member.loss),$(member.tree)")
                 end
             end
         else
