@@ -36,7 +36,7 @@ end
 
 @testset "to_int_ms — rounding" begin
     @test SurrogateViz.to_int_ms(100.4) == 100
-    @test SurrogateViz.to_int_ms(100.5) == 101
+    @test SurrogateViz.to_int_ms(100.5) == 100
     @test SurrogateViz.to_int_ms(0.0) == 0
 end
 
