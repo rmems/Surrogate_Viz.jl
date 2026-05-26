@@ -193,17 +193,17 @@ function main()
 
         if niterations > 0
             println("Launching SR search ($(niterations) iterations)...")
-            @eval using SymbolicRegression: equation_search, Options, calculate_pareto_frontier, square
-            hof = run_sr(X, y;
+            @eval using SymbolicRegression
+            hof = Base.invokelatest(run_sr, X, y;
                 niterations = niterations,
                 binary_operators = [+, -, *, /],
-                unary_operators = [exp, sqrt, square],
+                unary_operators = [exp, sqrt, SymbolicRegression.square],
                 maxsize = 15,
                 parsimony = 0.01,
                 npopulations = 20,
             )
             println("\n=== Pareto front for $(run["id"]) ===")
-            dominating = calculate_pareto_frontier(hof)
+            dominating = Base.invokelatest(SymbolicRegression.calculate_pareto_frontier, hof)
             for member in dominating
                 println("Loss: $(member.loss)  Complexity: $(member.complexity)  Eq: $(member.tree)")
             end
