@@ -8,8 +8,18 @@ using Statistics
 
 const IMPORT_ROOT = normpath(joinpath(@__DIR__, "..", "data", "corinth_runs"))
 
+function validate_path_component(name::AbstractString, value::AbstractString)
+    occursin("..", value) && error("Invalid $(name) path component (contains '..'): $(value)")
+    (startswith(value, "/") || occursin("\\", value)) && error("Invalid $(name) path component (absolute or contains backslash): $(value)")
+    return value
+end
+
 function imported_latent_path(run::Dict{String,<:Any})
-    joinpath(IMPORT_ROOT, run["model"], run["telemetry_source"], run["heartbeat"], run["id"], "latent_telemetry.csv")
+    model = validate_path_component("model", run["model"])
+    src = validate_path_component("telemetry_source", run["telemetry_source"])
+    hb = validate_path_component("heartbeat", run["heartbeat"])
+    id = validate_path_component("id", run["id"])
+    joinpath(IMPORT_ROOT, model, src, hb, id, "latent_telemetry.csv")
 end
 
 function load_latent_df(run::Dict{String,<:Any})
@@ -135,6 +145,6 @@ fmt(x) = string(x)
 
 export imported_latent_path, load_latent_df, detect_delta_column, maybe_entropy_column
 export to_float64_vec, to_int_ms, summarise_run, pairwise_summary, fmt
-export IMPORT_ROOT
+export validate_path_component, IMPORT_ROOT
 
 end # module SurrogateViz

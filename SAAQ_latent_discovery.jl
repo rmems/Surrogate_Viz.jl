@@ -1,4 +1,10 @@
-# Dormant harness for latent SAAQ equation discovery using true SNN signals
+# SAAQ latent equation discovery over imported corinth-canal runs
+#
+# Selects runs by RUN_ID or MODEL/CAMPAIGN/HEARTBEAT/REPEAT_IDX from
+# data/selected_runs.toml, loads their latent telemetry, validates columns,
+# and runs SymbolicRegression.jl.
+#
+# Outputs go to outputs/<model>/sr_results/<run_id>/.
 
 using Pkg
 Pkg.activate(@__DIR__)
@@ -6,7 +12,13 @@ Pkg.instantiate()
 
 using CSV
 using DataFrames
-using SymbolicRegression
+using TOML
+
+include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
+using .SurrogateViz
+
+const REPO_ROOT = @__DIR__
+const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")
 
 const REQUIRED_COLS = [
     :avg_pop_firing_rate_hz,
@@ -16,55 +28,195 @@ const REQUIRED_COLS = [
     :saaq_delta_q_target,
 ]
 
-csv_path = joinpath(@__DIR__, "outputs", "root_artifacts", "snn_latent_telemetry.csv")
+const FEATURE_COLS = [
+    :avg_pop_firing_rate_hz,
+    :membrane_dv_dt,
+    :routing_entropy,
+    :saaq_delta_q_prev,
+]
 
-println("1) Loading latent telemetry from $(csv_path)...")
-if !isfile(csv_path)
-    error("Missing telemetry file: $(csv_path). Run corinth-canal to generate it first.")
+const TARGET_COL = :saaq_delta_q_target
+
+function load_runs_manifest(path::AbstractString = SELECTED_RUNS_PATH)
+    isfile(path) || error("Missing selected runs manifest: $(path)")
+    manifest = TOML.parsefile(path)
+    runs = get(manifest, "runs", nothing)
+    runs isa Vector || error("Expected [[runs]] entries in $(path)")
+    isempty(runs) && error("No selected runs found in $(path)")
+    return runs
 end
 
-df = CSV.read(csv_path, DataFrame)
-
-missing_cols = setdiff(REQUIRED_COLS, propertynames(df))
-if !isempty(missing_cols)
-    error("Telemetry is missing required column(s): $(join(string.(missing_cols), ", ")). Check the Rust exporter schema.")
+function select_run_by_id(runs, run_id::AbstractString)
+    idx = findfirst(r -> r["id"] == run_id, runs)
+    idx === nothing && error("No run with id=$(run_id) in manifest")
+    return runs[idx]
 end
 
-println("2) Building feature matrix X and target y...")
-X = Matrix{Float64}(hcat(
-    df.avg_pop_firing_rate_hz,
-    df.membrane_dv_dt,
-    df.routing_entropy,
-    df.saaq_delta_q_prev,
-)')
-
-y = Float64.(df.saaq_delta_q_target)
-
-println("3) Configuring symbolic regression (interpretability-first)...")
-options = Options(
-    binary_operators=[+, -, *, /],
-    unary_operators=[exp, sqrt, square],
-    maxsize=15,           # keep equations short for Rust MoE integration
-    parsimony=0.01,       # push toward simpler expressions
-    npopulations=20,
+function select_runs_by_metadata(runs;
+    model::Union{Nothing,AbstractString} = nothing,
+    campaign::Union{Nothing,AbstractString} = nothing,
+    heartbeat::Union{Nothing,AbstractString} = nothing,
+    repeat_idx::Union{Nothing,Integer} = nothing,
+    telemetry_source::Union{Nothing,AbstractString} = nothing,
+    rule::Union{Nothing,AbstractString} = nothing,
 )
-
-println("4) Launching evolutionary search (this may take a moment)...")
-hof = equation_search(
-    X,
-    y,
-    niterations=30,
-    options=options,
-    variable_names=[
-        "avg_pop_firing_rate_hz",
-        "membrane_dv_dt",
-        "routing_entropy",
-        "saaq_delta_q_prev",
-    ],
-)
-
-println("\n=== Pareto front (dominant equations) ===")
-dominating = calculate_pareto_frontier(hof)
-for member in dominating
-    println("Loss: $(member.loss)  Complexity: $(member.complexity)  Eq: $(member.tree)")
+    matched = filter(runs) do r
+        (model === nothing || r["model"] == model) &&
+        (campaign === nothing || r["campaign"] == campaign) &&
+        (heartbeat === nothing || r["heartbeat"] == heartbeat) &&
+        (repeat_idx === nothing || Int(r["repeat_idx"]) == repeat_idx) &&
+        (telemetry_source === nothing || r["telemetry_source"] == telemetry_source) &&
+        (rule === nothing || r["rule"] == rule)
+    end
+    isempty(matched) && error("No runs match the given metadata filters")
+    return matched
 end
+
+function select_runs(runs; run_id::Union{Nothing,AbstractString} = nothing, kw...)
+    if run_id !== nothing
+        return [select_run_by_id(runs, run_id)]
+    end
+    return select_runs_by_metadata(runs; kw...)
+end
+
+function validate_columns(df::DataFrame, required::Vector{Symbol})
+    missing_cols = setdiff(required, propertynames(df))
+    isempty(missing_cols) || error("Telemetry missing required column(s): $(join(string.(missing_cols), ", ")): $(propertynames(df))")
+end
+
+function build_feature_matrix(df::DataFrame, features::Vector{Symbol}, target::Symbol)
+    X = Matrix{Float64}(hcat((Float64.(df[!, col]) for col in features)...))'
+    y = Float64.(df[!, target])
+    return X, y
+end
+
+function sr_output_dir(run::Dict{String,<:Any})
+    model = SurrogateViz.validate_path_component("model", run["model"])
+    id = SurrogateViz.validate_path_component("id", run["id"])
+    joinpath(REPO_ROOT, "outputs", model, "sr_results", id)
+end
+
+function write_metadata(run::Dict{String,<:Any}, out_dir::AbstractString;
+    options_dict::Dict = Dict{String,Any}(),
+    niterations::Int = 0,
+)
+    mkpath(out_dir)
+    meta = Dict{String,Any}(
+        "run_id" => run["id"],
+        "model" => run["model"],
+        "telemetry_source" => run["telemetry_source"],
+        "heartbeat" => run["heartbeat"],
+        "repeat_idx" => Int(run["repeat_idx"]),
+        "rule" => run["rule"],
+        "feature_columns" => string.(FEATURE_COLS),
+        "target_column" => string(TARGET_COL),
+        "niterations" => niterations,
+    )
+    merge!(meta, options_dict)
+    open(joinpath(out_dir, "sr_manifest.json"), "w") do io
+        println(io, "{")
+        items = collect(pairs(meta))
+        for (i, (k, v)) in enumerate(items)
+            val = v isa Vector ? (isempty(v) ? "[]" : "[\"" * join(string.(v), "\",\"") * "\"]") :
+                  v isa Bool ? (v ? "true" : "false") :
+                  v isa Number ? string(v) :
+                  "\"" * replace(replace(string(v), "\\" => "\\\\"), "\"" => "\\\"") * "\""
+            println(io, "  \"$(k)\": $(val)$(i < length(items) ? "," : "")")
+        end
+        println(io, "}")
+    end
+    return meta
+end
+
+function run_sr(X, y; niterations::Int = 30, options_kwargs...)
+    opts = Options(; options_kwargs...)
+    hof = equation_search(X, y; niterations = niterations, options = opts,
+        variable_names = string.(FEATURE_COLS))
+    return hof
+end
+
+function main()
+    runs = load_runs_manifest()
+
+    run_id = get(ENV, "RUN_ID", nothing)
+    model = get(ENV, "MODEL", nothing)
+    campaign = get(ENV, "CAMPAIGN", nothing)
+    heartbeat = get(ENV, "HEARTBEAT", nothing)
+    repeat_idx = let v = get(ENV, "REPEAT_IDX", nothing)
+        v === nothing ? nothing : parse(Int, v)
+    end
+    telemetry_source = get(ENV, "TELEMETRY_SOURCE", nothing)
+    rule = get(ENV, "RULE", nothing)
+    niterations = let v = get(ENV, "SR_ITERATIONS", "30")
+        parse(Int, v)
+    end
+
+    selected = select_runs(runs;
+        run_id = run_id,
+        model = model,
+        campaign = campaign,
+        heartbeat = heartbeat,
+        repeat_idx = repeat_idx,
+        telemetry_source = telemetry_source,
+        rule = rule,
+    )
+
+    println("Selected $(length(selected)) run(s)")
+
+    for run in selected
+        println("\n=== Processing run $(run["id"]) ===")
+        csv_path = imported_latent_path(run)
+
+        if !isfile(csv_path)
+            @warn "Skipping run $(run["id"]): latent telemetry not found at $(csv_path)"
+            continue
+        end
+
+        df = CSV.read(csv_path, DataFrame)
+        validate_columns(df, REQUIRED_COLS)
+
+        X, y = build_feature_matrix(df, FEATURE_COLS, TARGET_COL)
+        println("Feature matrix: $(size(X)) rows=$(size(X, 2)), features=$(size(X, 1))")
+        println("Target vector: $(length(y)) samples")
+
+        out_dir = sr_output_dir(run)
+        write_metadata(run, out_dir;
+            niterations = niterations,
+            options_dict = Dict{String,Any}(
+                "binary_operators" => ["+", "-", "*", "/"],
+                "unary_operators" => ["exp", "sqrt", "square"],
+                "maxsize" => 15,
+                "parsimony" => 0.01,
+            ),
+        )
+        println("Metadata written to $(out_dir)/sr_manifest.json")
+
+        if niterations > 0
+            println("Launching SR search ($(niterations) iterations)...")
+            @eval using SymbolicRegression
+            hof = Base.invokelatest(run_sr, X, y;
+                niterations = niterations,
+                binary_operators = [+, -, *, /],
+                unary_operators = [exp, sqrt, SymbolicRegression.square],
+                maxsize = 15,
+                parsimony = 0.01,
+                npopulations = 20,
+            )
+            println("\n=== Pareto front for $(run["id"]) ===")
+            dominating = Base.invokelatest(SymbolicRegression.calculate_pareto_frontier, hof)
+            for member in dominating
+                println("Loss: $(member.loss)  Complexity: $(member.complexity)  Eq: $(member.tree)")
+            end
+            open(joinpath(out_dir, "pareto_front.csv"), "w") do io
+                println(io, "complexity,loss,equation")
+                for member in dominating
+                    println(io, "$(member.complexity),$(member.loss),\"$(replace(string(member.tree), "\"" => "\"\""))\"")
+                end
+            end
+        else
+            println("SR_ITERATIONS=0 — skipping SR search (dry run)")
+        end
+    end
+end
+
+main()

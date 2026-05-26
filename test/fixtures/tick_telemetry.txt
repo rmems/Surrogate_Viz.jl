@@ -1,0 +1,2 @@
+tick=0 best_walker=1 elapsed_us=1000 heartbeat_signal=0.0 gpu_temp_c=45.0 gpu_power_w=120.5 cpu_tctl_c=50.0 cpu_package_power_w=15.0
+tick=1 best_walker=2 elapsed_us=2000 heartbeat_signal=0.5 gpu_temp_c=46.0 gpu_power_w=122.0 cpu_tctl_c=51.0 cpu_package_power_w=15.5
