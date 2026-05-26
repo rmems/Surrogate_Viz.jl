@@ -110,7 +110,7 @@ function pairwise_summary(off_df::DataFrame, on_df::DataFrame, delta_col::Symbol
         on = :timestamp_ms,
     )
 
-    nrow(joined) > 0 || error("No overlapping timestamps between baseline and treatment runs")
+    nrow(joined) > 0 || error("No overlapping timestamps between the provided runs")
     joined.delta_on_minus_off = joined.delta_on .- joined.delta_off
 
     summary = Dict{String,Any}(
