@@ -195,7 +195,7 @@ function main()
 
         if niterations > 0
             println("Launching SR search ($(niterations) iterations)...")
-            @eval using SymbolicRegression: equation_search, Options, calculate_pareto_frontier
+            @eval using SymbolicRegression: equation_search, Options, calculate_pareto_frontier, square
             hof = run_sr(X, y;
                 niterations = niterations,
                 binary_operators = [+, -, *, /],
@@ -212,7 +212,7 @@ function main()
             open(joinpath(out_dir, "pareto_front.csv"), "w") do io
                 println(io, "complexity,loss,equation")
                 for member in dominating
-                    println(io, "$(member.complexity),$(member.loss),$(member.tree)")
+                    println(io, "$(member.complexity),$(member.loss),\"$(replace(string(member.tree), "\"" => "\"\""))\"")
                 end
             end
         else
