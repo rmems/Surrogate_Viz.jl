@@ -131,7 +131,6 @@ function write_metadata(run::Dict{String,<:Any}, out_dir::AbstractString;
 end
 
 function run_sr(X, y; niterations::Int = 30, options_kwargs...)
-    @eval using SymbolicRegression
     opts = Options(; options_kwargs...)
     hof = equation_search(X, y; niterations = niterations, options = opts,
         variable_names = string.(FEATURE_COLS))
@@ -196,6 +195,7 @@ function main()
 
         if niterations > 0
             println("Launching SR search ($(niterations) iterations)...")
+            @eval using SymbolicRegression: equation_search, Options, calculate_pareto_frontier
             hof = run_sr(X, y;
                 niterations = niterations,
                 binary_operators = [+, -, *, /],
