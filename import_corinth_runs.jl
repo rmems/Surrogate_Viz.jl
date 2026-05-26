@@ -24,7 +24,7 @@ function load_selected_runs(path::AbstractString)
 end
 
 function local_run_dir(run::Dict{String,<:Any})
-    joinpath(IMPORT_ROOT, run["model"], run["telemetry_source"], run["heartbeat"], run["id"])
+    joinpath(IMPORT_ROOT, run["model"], run["telemetry_source"], run["condition"], run["id"])
 end
 
 path_exists(path::AbstractString) = ispath(path) || islink(path)
@@ -65,7 +65,7 @@ function import_run!(run::Dict{String,<:Any}; force::Bool)
         model = run["model"],
         family = run["family"],
         telemetry_source = run["telemetry_source"],
-        heartbeat = run["heartbeat"],
+        condition = run["condition"],
         repeat_idx = Int(run["repeat_idx"]),
         rule = run["rule"],
         blessed = Bool(run["blessed"]),
@@ -79,7 +79,7 @@ function import_run!(run::Dict{String,<:Any}; force::Bool)
 end
 
 function main()
-    runs = sort(load_selected_runs(SELECTED_RUNS_PATH); by = run -> (run["model"], run["telemetry_source"], run["heartbeat"], Int(run["repeat_idx"]), run["id"]))
+    runs = sort(load_selected_runs(SELECTED_RUNS_PATH); by = run -> (run["model"], run["telemetry_source"], run["condition"], Int(run["repeat_idx"]), run["id"]))
     force = force_import_enabled()
 
     mkpath(IMPORT_ROOT)

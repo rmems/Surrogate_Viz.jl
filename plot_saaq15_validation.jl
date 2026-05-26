@@ -7,7 +7,7 @@ ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")
 using Plots
 
-const TICK_PATTERN = r"^tick=(\d+) best_walker=(\d+) elapsed_us=(\d+) heartbeat_signal=([-+0-9.eE]+) gpu_temp_c=([-+0-9.eE]+) gpu_power_w=([-+0-9.eE]+) cpu_tctl_c=([-+0-9.eE]+) cpu_package_power_w=([-+0-9.eE]+)$"
+const TICK_PATTERN = r"^tick=(\d+) best_walker=(\d+) elapsed_us=(\d+) condition_signal=([-+0-9.eE]+) gpu_temp_c=([-+0-9.eE]+) gpu_power_w=([-+0-9.eE]+) cpu_tctl_c=([-+0-9.eE]+) cpu_package_power_w=([-+0-9.eE]+)$"
 
 const MODELS = [
     "olmoe-1b-7b",                                    # olmoe_baseline
@@ -46,8 +46,8 @@ function load_latent_data(path::AbstractString)
         :timestamp_ms,
         :avg_pop_firing_rate_hz,
         :routing_entropy,
-        :heartbeat_signal,
-        :heartbeat_enabled,
+        :condition_signal,
+        :condition_enabled,
         :gpu_temp_c,
         :gpu_power_w,
         :cpu_tctl_c,
@@ -66,7 +66,7 @@ function load_tick_data(path::AbstractString)
     ticks = Int[]
     best_walkers = Int[]
     elapsed_us = Int[]
-    heartbeat_signal = Float64[]
+    condition_signal = Float64[]
     gpu_temp_c = Float64[]
     gpu_power_w = Float64[]
     cpu_tctl_c = Float64[]
@@ -79,20 +79,20 @@ function load_tick_data(path::AbstractString)
         push!(ticks, parse(Int, match_result.captures[1]))
         push!(best_walkers, parse(Int, match_result.captures[2]))
         push!(elapsed_us, parse(Int, match_result.captures[3]))
-        push!(heartbeat_signal, parse(Float64, match_result.captures[4]))
+        push!(condition_signal, parse(Float64, match_result.captures[4]))
         push!(gpu_temp_c, parse(Float64, match_result.captures[5]))
         push!(gpu_power_w, parse(Float64, match_result.captures[6]))
         push!(cpu_tctl_c, parse(Float64, match_result.captures[7]))
         push!(cpu_package_power_w, parse(Float64, match_result.captures[8]))
     end
 
-    isempty(ticks) && error("No tick data found in $(path). Expected heartbeat-aware telemetry lines.")
+    isempty(ticks) && error("No tick data found in $(path). Expected condition-aware telemetry lines.")
 
     return DataFrame(
         tick = ticks,
         best_walker = best_walkers,
         elapsed_us = elapsed_us,
-        heartbeat_signal = heartbeat_signal,
+        condition_signal = condition_signal,
         gpu_temp_c = gpu_temp_c,
         gpu_power_w = gpu_power_w,
         cpu_tctl_c = cpu_tctl_c,
@@ -124,10 +124,10 @@ end
 function build_dashboard(latent_df::DataFrame, tick_df::DataFrame)
     default(fontfamily = "Helvetica", legend = :topright, lw = 2, size = (1500, 1200), dpi = 180)
 
-    rate_overlay = scaled_overlay(latent_df.heartbeat_signal, latent_df.avg_pop_firing_rate_hz)
-    entropy_overlay = scaled_overlay(latent_df.heartbeat_signal, latent_df.routing_entropy)
-    walker_overlay = scaled_overlay(tick_df.heartbeat_signal, tick_df.best_walker)
-    power_overlay = scaled_overlay(latent_df.heartbeat_signal, latent_df.gpu_power_w)
+    rate_overlay = scaled_overlay(latent_df.condition_signal, latent_df.avg_pop_firing_rate_hz)
+    entropy_overlay = scaled_overlay(latent_df.condition_signal, latent_df.routing_entropy)
+    walker_overlay = scaled_overlay(tick_df.condition_signal, tick_df.best_walker)
+    power_overlay = scaled_overlay(latent_df.condition_signal, latent_df.gpu_power_w)
 
     p1 = plot(
         latent_df.tick,
@@ -138,7 +138,7 @@ function build_dashboard(latent_df::DataFrame, tick_df::DataFrame)
         ylabel = "Hidden Population Rate (Hz)",
         title = "SAAQ 1.5 Validation: Firing Rate vs Control Signal",
     )
-    plot!(p1, latent_df.tick, rate_overlay; label = "heartbeat_signal (scaled)", color = :crimson, linestyle = :dash)
+    plot!(p1, latent_df.tick, rate_overlay; label = "condition_signal (scaled)", color = :crimson, linestyle = :dash)
 
     p2 = plot(
         latent_df.tick,
@@ -149,7 +149,7 @@ function build_dashboard(latent_df::DataFrame, tick_df::DataFrame)
         ylabel = "Routing Entropy",
         title = "Routing Entropy vs Control Signal",
     )
-    plot!(p2, latent_df.tick, entropy_overlay; label = "heartbeat_signal (scaled)", color = :crimson, linestyle = :dash)
+    plot!(p2, latent_df.tick, entropy_overlay; label = "condition_signal (scaled)", color = :crimson, linestyle = :dash)
 
     p3 = scatter(
         tick_df.tick,
@@ -161,7 +161,7 @@ function build_dashboard(latent_df::DataFrame, tick_df::DataFrame)
         ylabel = "Best Walker",
         title = "Walker Activity vs Control Signal",
     )
-    plot!(p3, tick_df.tick, walker_overlay; label = "heartbeat_signal (scaled)", color = :crimson, linestyle = :dash)
+    plot!(p3, tick_df.tick, walker_overlay; label = "condition_signal (scaled)", color = :crimson, linestyle = :dash)
 
     p4 = plot(
         latent_df.tick,
@@ -175,7 +175,7 @@ function build_dashboard(latent_df::DataFrame, tick_df::DataFrame)
     plot!(p4, latent_df.tick, latent_df.gpu_power_w; label = "gpu_power_w", color = :royalblue3)
     plot!(p4, latent_df.tick, latent_df.cpu_tctl_c; label = "cpu_tctl_c", color = :forestgreen)
     plot!(p4, latent_df.tick, latent_df.cpu_package_power_w; label = "cpu_package_power_w", color = :brown3)
-    plot!(p4, latent_df.tick, power_overlay; label = "heartbeat_signal (scaled)", color = :crimson, linestyle = :dash)
+    plot!(p4, latent_df.tick, power_overlay; label = "condition_signal (scaled)", color = :crimson, linestyle = :dash)
 
     plot(p1, p2, p3, p4; layout = (4, 1))
 end

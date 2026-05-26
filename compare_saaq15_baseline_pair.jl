@@ -12,8 +12,8 @@ using Plots
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")
 const OUTPUT_DIR = joinpath(REPO_ROOT, "outputs", "olmoe-1b-7b", "dashboards")
-const REPORT_PATH = joinpath(OUTPUT_DIR, "saaq15_re4_heartbeat_comparison.md")
-const PLOT_PATH = joinpath(OUTPUT_DIR, "saaq15_re4_heartbeat_comparison.png")
+const REPORT_PATH = joinpath(OUTPUT_DIR, "saaq15_re4_condition_comparison.md")
+const PLOT_PATH = joinpath(OUTPUT_DIR, "saaq15_re4_condition_comparison.png")
 
 function selected_repeat_idx()
     if !isempty(ARGS)
@@ -40,8 +40,8 @@ function blessed_pair(runs::AbstractVector, repeat_idx::Int)
         Int(run["repeat_idx"]) == repeat_idx
     end
 
-    off_run = only(filter(run -> run["heartbeat"] == "heartbeat_off", blessed_runs))
-    on_run = only(filter(run -> run["heartbeat"] == "heartbeat_on", blessed_runs))
+    off_run = only(filter(run -> run["condition"] == "baseline", blessed_runs))
+    on_run = only(filter(run -> run["condition"] == "treatment", blessed_runs))
     return off_run, on_run
 end
 
@@ -114,7 +114,7 @@ function write_report(
     for row in run_summaries
         push!(
             lines,
-            "| `$(row["run_id"])` | `$(row["heartbeat"])` | $(row["rows"]) | $(row["first_ms"]) | $(row["last_ms"]) | $(fmt(row["mean_delta"])) | $(fmt(row["max_delta"])) | $(fmt(row["final_delta"])) | $(fmt(row["mean_entropy"])) | $(fmt(row["final_entropy"])) |",
+            "| `$(row["run_id"])` | `$(row["condition"])` | $(row["rows"]) | $(row["first_ms"]) | $(row["last_ms"]) | $(fmt(row["mean_delta"])) | $(fmt(row["max_delta"])) | $(fmt(row["final_delta"])) | $(fmt(row["mean_entropy"])) | $(fmt(row["final_entropy"])) |",
         )
     end
 
