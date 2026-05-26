@@ -91,10 +91,8 @@ function build_feature_matrix(df::DataFrame, features::Vector{Symbol}, target::S
 end
 
 function sr_output_dir(run::Dict{String,<:Any})
-    model = run["model"]
-    id = run["id"]
-    occursin("..", model) && error("Invalid model path component: $(model)")
-    occursin("..", id) && error("Invalid run id path component: $(id)")
+    model = SurrogateViz.validate_path_component("model", run["model"])
+    id = SurrogateViz.validate_path_component("id", run["id"])
     joinpath(REPO_ROOT, "outputs", model, "sr_results", id)
 end
 

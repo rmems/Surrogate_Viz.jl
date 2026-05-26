@@ -204,6 +204,40 @@ end
     @test !occursin("//", SurrogateViz.IMPORT_ROOT)
 end
 
+@testset "import contract — path traversal rejection" begin
+    traversal_run = Dict{String,Any}(
+        "id" => "../etc/passwd",
+        "model" => "test_model",
+        "telemetry_source" => "csv_re4_path_tracing_telemetry",
+        "heartbeat" => "heartbeat_off",
+    )
+    @test_throws ErrorException SurrogateViz.imported_latent_path(traversal_run)
+
+    abs_run = Dict{String,Any}(
+        "id" => "run_abc",
+        "model" => "/etc",
+        "telemetry_source" => "csv_re4_path_tracing_telemetry",
+        "heartbeat" => "heartbeat_off",
+    )
+    @test_throws ErrorException SurrogateViz.imported_latent_path(abs_run)
+
+    backslash_run = Dict{String,Any}(
+        "id" => "run_abc",
+        "model" => "test_model",
+        "telemetry_source" => "csv_re4\\path_tracing_telemetry",
+        "heartbeat" => "heartbeat_off",
+    )
+    @test_throws ErrorException SurrogateViz.imported_latent_path(backslash_run)
+
+    good_run = Dict{String,Any}(
+        "id" => "run_abc",
+        "model" => "olmoe-1b-7b",
+        "telemetry_source" => "csv_re4_path_tracing_telemetry",
+        "heartbeat" => "heartbeat_off",
+    )
+    @test SurrogateViz.imported_latent_path(good_run) isa String
+end
+
 @testset "SAAQ_latent_discovery — column validation with fixture" begin
     fixture_csv = joinpath(@__DIR__, "fixtures", "latent_telemetry.csv")
     @test isfile(fixture_csv)
