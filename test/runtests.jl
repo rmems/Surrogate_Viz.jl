@@ -2,6 +2,7 @@ using Test
 using CSV
 using DataFrames
 using Statistics
+using TOML
 
 include(joinpath(@__DIR__, "..", "src", "Surrogate_Viz.jl"))
 using .SurrogateViz
@@ -166,8 +167,6 @@ end
 end
 
 @testset "import contract — selected_runs.toml parsing" begin
-    using TOML
-
     fixture_path = joinpath(@__DIR__, "fixtures", "selected_runs.toml")
     @test isfile(fixture_path)
 

@@ -12,7 +12,6 @@ Pkg.instantiate()
 
 using CSV
 using DataFrames
-using SymbolicRegression
 using TOML
 
 include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
@@ -92,7 +91,11 @@ function build_feature_matrix(df::DataFrame, features::Vector{Symbol}, target::S
 end
 
 function sr_output_dir(run::Dict{String,<:Any})
-    joinpath(REPO_ROOT, "outputs", run["model"], "sr_results", run["id"])
+    model = run["model"]
+    id = run["id"]
+    occursin("..", model) && error("Invalid model path component: $(model)")
+    occursin("..", id) && error("Invalid run id path component: $(id)")
+    joinpath(REPO_ROOT, "outputs", model, "sr_results", id)
 end
 
 function write_metadata(run::Dict{String,<:Any}, out_dir::AbstractString;
@@ -119,7 +122,7 @@ function write_metadata(run::Dict{String,<:Any}, out_dir::AbstractString;
             val = v isa Vector ? (isempty(v) ? "[]" : "[\"" * join(string.(v), "\",\"") * "\"]") :
                   v isa Bool ? (v ? "true" : "false") :
                   v isa Number ? string(v) :
-                  "\"" * replace(string(v), "\"" => "\\\"") * "\""
+                  "\"" * replace(replace(string(v), "\\" => "\\\\"), "\"" => "\\\"") * "\""
             println(io, "  \"$(k)\": $(val)$(i < length(items) ? "," : "")")
         end
         println(io, "}")
@@ -128,6 +131,7 @@ function write_metadata(run::Dict{String,<:Any}, out_dir::AbstractString;
 end
 
 function run_sr(X, y; niterations::Int = 30, options_kwargs...)
+    @eval using SymbolicRegression
     opts = Options(; options_kwargs...)
     hof = equation_search(X, y; niterations = niterations, options = opts,
         variable_names = string.(FEATURE_COLS))
