@@ -178,7 +178,9 @@ function normalize_bundles_dir(input_dir::AbstractString)::Tuple{DataFrame, Data
     all_warnings = vcat(warnings_dfs..., cols=:union)
 
     # Deduplicate: keep last occurrence per run_id
-    all_runs = combine(groupby(all_runs, :run_id), last)
+    all_runs = combine(groupby(all_runs, :run_id)) do sdf
+        last(sdf, 1)
+    end
     
     # Filter metrics/warnings to only rows from the last-loaded bundle per run_id
     last_bundle_seq = Dict{String, Int}()
