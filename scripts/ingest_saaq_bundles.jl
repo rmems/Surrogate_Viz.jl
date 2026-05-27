@@ -6,8 +6,8 @@
 using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
 
-using Surrogate_Viz
-const SV = Surrogate_Viz
+include(joinpath(@__DIR__, "..", "src", "Surrogate_Viz.jl"))
+const SV = getfield(Main, :Surrogate_Viz)
 using CSV
 using DataFrames
 
@@ -41,16 +41,12 @@ function main()
 
     CSV.write(runs_path, runs_df)
     CSV.write(metrics_path, metrics_df)
-    if nrow(warnings_df) > 0
-        CSV.write(warnings_path, warnings_df)
-    end
+    CSV.write(warnings_path, warnings_df)
 
     println("✓ Ingested $(nrow(runs_df)) runs")
     println("  runs_table.csv:     $(runs_path)")
     println("  metrics_table.csv:  $(metrics_path)")
-    if nrow(warnings_df) > 0
-        println("  warnings_table.csv: $(warnings_path)")
-    end
+    println("  warnings_table.csv: $(warnings_path)")
 end
 
 main()

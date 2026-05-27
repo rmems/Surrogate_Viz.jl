@@ -329,7 +329,7 @@ end
     @test bundle.manifest.heartbeat_enabled == false
     @test bundle.manifest.saaq_rule == "SaaqV1_5SqrtRate"
     @test bundle.metrics.ticks_completed == 512
-    @test bundle.metrics.latent_rows == 0
+    @test ismissing(bundle.metrics.latent_rows)
     @test ismissing(bundle.metrics.mean_tick_elapsed_us)
 end
 

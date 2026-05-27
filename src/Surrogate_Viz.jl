@@ -174,8 +174,8 @@ Base.@kwdef struct RunManifest
 end
 
 Base.@kwdef struct RunMetrics
-    ticks_completed::Int = 0
-    latent_rows::Int = 0
+    ticks_completed::Union{Int,Missing} = missing
+    latent_rows::Union{Int,Missing} = missing
     mean_tick_elapsed_us::Union{Float64,Missing} = missing
     first_timestamp_ms::Union{Int,Missing} = missing
     last_timestamp_ms::Union{Int,Missing} = missing
@@ -216,6 +216,8 @@ KNOWN_METRICS_FIELDS = [
 function _status_from_validation(v::Union{Nothing,String}, error::Union{Nothing,String})
     if v === nothing
         return error !== nothing && !isempty(error) ? failed : real
+    elseif error !== nothing && !isempty(error) && v ∈ ("completed", "success")
+        return failed
     elseif v ∈ ("completed", "success")
         return real
     elseif v ∈ ("synthetic",)
@@ -291,8 +293,8 @@ function load_saaq_bundle(path::AbstractString)::SaaqBundle
 
         raw_metrics = get(raw_summary, "metrics", Dict{String,Any}())
         metrics = RunMetrics(
-            ticks_completed = get(raw_metrics, "ticks_completed", 0),
-            latent_rows = get(raw_metrics, "latent_rows", 0),
+            ticks_completed = get(raw_metrics, "ticks_completed", missing),
+            latent_rows = get(raw_metrics, "latent_rows", missing),
             mean_tick_elapsed_us = get(raw_metrics, "mean_tick_elapsed_us", missing),
             first_timestamp_ms = get(raw_metrics, "first_timestamp_ms", missing),
             last_timestamp_ms = get(raw_metrics, "last_timestamp_ms", missing),
@@ -329,132 +331,11 @@ function _nothing_to_missing(v::Union{Nothing,T}) where T
     v === nothing ? missing : v
 end
 
-function normalize_bundle_to_tables(bundle::SaaqBundle)::Tuple{DataFrame, DataFrame, DataFrame}
-    m = bundle.manifest
-    metrics_row = bundle.metrics
-
-    run_status_str = string(m.run_status)
-
-    runs_row = Dict{String,Any}(
-        "run_id" => m.run_id,
-        "run_status" => run_status_str,
-        "model_family" => m.model_family,
-        "model_slug" => m.model_slug,
-        "model_descriptor" => _nothing_to_missing(m.model_descriptor),
-        "architecture" => m.architecture,
-        "checkpoint_format" => m.checkpoint_format,
-        "prompt_profile" => m.prompt_profile,
-        "saaq_formula_version" => m.saaq_rule,
-        "saaq_dual_emit" => m.saaq_dual_emit,
-        "telemetry_source" => m.telemetry_source,
-        "routing_mode" => m.routing_mode,
-        "heartbeat_enabled" => m.heartbeat_enabled,
-        "heartbeat_amplitude" => m.heartbeat_amplitude,
-        "heartbeat_period_ticks" => m.heartbeat_period_ticks,
-        "heartbeat_duty_cycle" => m.heartbeat_duty_cycle,
-        "run_tag" => m.run_tag,
-        "repeat_idx" => m.repeat_idx,
-        "repeat_count" => m.repeat_count,
-        "validation_status" => m.validation_status,
-        "error" => _nothing_to_missing(m.error),
-        "ticks" => m.ticks,
-        "ticks_effective" => m.ticks_effective,
-    )
-
-    if !isempty(m.extra)
-        for (k, v) in m.extra
-            clean_v = v === nothing ? missing :
-                      v isa AbstractArray ? Any[vi === nothing ? missing : vi for vi in v] :
-                      v
-            runs_row["extra_$(k)"] = clean_v
-        end
-    end
-
-    runs_df = DataFrame([runs_row])
-
-    metrics_rows = Dict{String,Any}[]
-    for (k, v) in metrics_row.extra
-        push!(metrics_rows, Dict{String,Any}(
-            "run_id" => m.run_id,
-            "metric_name" => k,
-            "metric_value" => v,
-            "metric_category" => "extra",
-        ))
-    end
-
-    if metrics_row.ticks_completed > 0
-        push!(metrics_rows, Dict{String,Any}(
-            "run_id" => m.run_id, "metric_name" => "ticks_completed",
-            "metric_value" => metrics_row.ticks_completed, "metric_category" => "runtime"))
-    end
-    if metrics_row.latent_rows > 0
-        push!(metrics_rows, Dict{String,Any}(
-            "run_id" => m.run_id, "metric_name" => "latent_rows",
-            "metric_value" => metrics_row.latent_rows, "metric_category" => "runtime"))
-    end
-    if !ismissing(metrics_row.mean_tick_elapsed_us)
-        push!(metrics_rows, Dict{String,Any}(
-            "run_id" => m.run_id, "metric_name" => "mean_tick_elapsed_us",
-            "metric_value" => metrics_row.mean_tick_elapsed_us, "metric_category" => "runtime"))
-    end
-    if !ismissing(metrics_row.first_timestamp_ms)
-        push!(metrics_rows, Dict{String,Any}(
-            "run_id" => m.run_id, "metric_name" => "first_timestamp_ms",
-            "metric_value" => metrics_row.first_timestamp_ms, "metric_category" => "runtime"))
-    end
-    if !ismissing(metrics_row.last_timestamp_ms)
-        push!(metrics_rows, Dict{String,Any}(
-            "run_id" => m.run_id, "metric_name" => "last_timestamp_ms",
-            "metric_value" => metrics_row.last_timestamp_ms, "metric_category" => "runtime"))
-    end
-    if !ismissing(metrics_row.repeat_determinism)
-        push!(metrics_rows, Dict{String,Any}(
-            "run_id" => m.run_id, "metric_name" => "repeat_determinism",
-            "metric_value" => metrics_row.repeat_determinism, "metric_category" => "quality"))
-    end
-
-    metrics_df = isempty(metrics_rows) ? DataFrame(run_id=String[], metric_name=String[], metric_value=Any[], metric_category=String[]) : DataFrame(metrics_rows)
-
-    warnings_rows = Dict{String,Any}[
-        Dict{String,Any}("run_id" => m.run_id, "warning_category" => w.category,
-         "warning_message" => w.message, "tensor_name" => _nothing_to_missing(w.tensor_name), "severity" => "info")
-        for w in bundle.warnings
-    ]
-    warnings_df = DataFrame(warnings_rows)
-
-    return runs_df, metrics_df, warnings_df
-end
-
-function normalize_bundles_dir(input_dir::AbstractString)::Tuple{DataFrame, DataFrame, DataFrame}
-    runs_dfs = DataFrame[]
-    metrics_dfs = DataFrame[]
-    warnings_dfs = DataFrame[]
-
-    if !isdir(input_dir)
-        error("Input directory not found: $(input_dir)")
-    end
-
-    for (root, dirs, files) in walkdir(input_dir)
-        if "run_manifest.json" in files
-            bundle_path = root
-            try
-                bundle = load_saaq_bundle(bundle_path)
-                runs_df, metrics_df, warnings_df = normalize_bundle_to_tables(bundle)
-                push!(runs_dfs, runs_df)
-                push!(metrics_dfs, metrics_df)
-                push!(warnings_dfs, warnings_df)
-            catch e
-                @warn "Failed to load bundle at $(bundle_path): $(e)"
-            end
-        end
-    end
-
-    all_runs = isempty(runs_dfs) ? DataFrame(run_id=String[], run_status=String[]) : vcat(runs_dfs..., cols=:union)
-    all_metrics = isempty(metrics_dfs) ? DataFrame(run_id=String[], metric_name=String[], metric_value=Any[], metric_category=String[]) : vcat(metrics_dfs..., cols=:union)
-    all_warnings = isempty(warnings_dfs) ? DataFrame(run_id=String[], warning_category=String[], warning_message=String[], tensor_name=Union{String,Nothing}[], severity=String[]) : vcat(warnings_dfs..., cols=:union)
-
-    return all_runs, all_metrics, all_warnings
-end
+include(joinpath(@__DIR__, "normalizers", "SaaqNormalizer.jl"))
+const _saaq_normalizer = getfield(@__MODULE__, :SaaqNormalizer)
+const normalize_bundle_to_tables = getfield(_saaq_normalizer, :normalize_bundle_to_tables)
+const normalize_bundles_dir = getfield(_saaq_normalizer, :normalize_bundles_dir)
+const normalize_saaq_bundle_to_tables = getfield(_saaq_normalizer, :normalize_saaq_bundle_to_tables)
 
 export imported_latent_path, load_latent_df, detect_delta_column, maybe_entropy_column
 export to_float64_vec, to_int_ms, summarise_run, pairwise_summary, fmt
@@ -462,6 +343,6 @@ export validate_path_component, IMPORT_ROOT
 export RunStatus, RunManifest, RunMetrics, RunWarning, SaaqBundle
 export real, synthetic, skipped, failed
 export load_saaq_bundle, validate_saaq_bundle
-export normalize_bundle_to_tables, normalize_bundles_dir
+export normalize_bundle_to_tables, normalize_bundles_dir, normalize_saaq_bundle_to_tables
 
 end # module Surrogate_Viz

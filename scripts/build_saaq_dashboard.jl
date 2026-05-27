@@ -6,8 +6,8 @@
 using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
 
-using Surrogate_Viz
-const SV = Surrogate_Viz
+include(joinpath(@__DIR__, "..", "src", "Surrogate_Viz.jl"))
+const SV = getfield(Main, :Surrogate_Viz)
 using CSV
 using DataFrames
 import Dates
@@ -391,7 +391,7 @@ function main()
 
     runs_df = CSV.read(runs_path, DataFrame)
     metrics_df = isfile(metrics_path) ? CSV.read(metrics_path, DataFrame) : DataFrame(run_id=String[], metric_name=String[], metric_value=Any[], metric_category=String[])
-    warnings_df = isfile(warnings_path) ? CSV.read(warnings_path, DataFrame) : DataFrame(run_id=String[], warning_category=String[], warning_message=String[], tensor_name=Union{String,Nothing}[], severity=String[])
+    warnings_df = isfile(warnings_path) ? CSV.read(warnings_path, DataFrame) : DataFrame(run_id=String[], warning_category=String[], warning_message=String[], tensor_name=Union{String,Missing}[], severity=String[])
 
     date_label = Dates.format(Dates.today(), "yyyy-mm-dd")
     out_dir = joinpath(report_dir, date_label)
