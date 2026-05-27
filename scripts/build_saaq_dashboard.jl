@@ -143,7 +143,6 @@ function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label)
         run_id = string(row.run_id)
         status = string(row.run_status)
         status_class = "badge-$(status)"
-        heartbeat = row.heartbeat_enabled ? "HB-on" : "HB-off"
         hb_label = row.heartbeat_enabled ? "&nbsp;<span style='color:#6a7fe8'>♦</span>" : ""
 
         run_metrics = filter(:run_id => ==(run_id), metrics_df)

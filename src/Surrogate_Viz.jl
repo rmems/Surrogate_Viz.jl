@@ -203,7 +203,7 @@ KNOWN_MANIFEST_FIELDS = [
     :heartbeat_amplitude, :heartbeat_period_ticks, :heartbeat_duty_cycle,
     :heartbeat_phase_offset_ticks, :telemetry_source, :telemetry_csv_path,
     :telemetry_row_count, :wraparound_enabled, :wraparound_loops,
-    :ticks_effective, :run_id, :run_dir, :output_root, :repeat_idx,
+    :ticks_effective, :run_dir, :output_root, :repeat_idx,
     :repeat_count, :cwd_routing_csv_contaminated, :run_tag, :routing_mode,
     :generated_files, :created_at, :repo, :commit_sha,
 ]
