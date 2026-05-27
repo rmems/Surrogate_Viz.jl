@@ -1,1 +1,1 @@
-{"model": "test_model", "family": "test", "heartbeat": "heartbeat_off", "rule": "SaaqV1_5SqrtRate", "rows": 3}
+{"model": "test_model", "family": "test", "condition": "baseline", "rule": "SaaqV1_5SqrtRate", "rows": 3}

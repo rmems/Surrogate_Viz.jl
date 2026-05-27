@@ -52,8 +52,8 @@ end
 
 function model_pair(runs::AbstractVector, model_slug::AbstractString)
     model_runs = filter(run -> run["model"] == model_slug, runs)
-    off_run = only(filter(run -> run["heartbeat"] == "heartbeat_off", model_runs))
-    on_run = only(filter(run -> run["heartbeat"] == "heartbeat_on", model_runs))
+    off_run = only(filter(run -> run["condition"] == "baseline", model_runs))
+    on_run = only(filter(run -> run["condition"] == "treatment", model_runs))
     return off_run, on_run
 end
 
@@ -61,8 +61,8 @@ function validate_pairs(runs::AbstractVector, models::AbstractVector{<:AbstractS
     available = String[]
     problems = String[]
     for slug in models
-        off_matches = filter(run -> run["model"] == slug && run["heartbeat"] == "heartbeat_off", runs)
-        on_matches = filter(run -> run["model"] == slug && run["heartbeat"] == "heartbeat_on", runs)
+        off_matches = filter(run -> run["model"] == slug && run["condition"] == "baseline", runs)
+        on_matches = filter(run -> run["model"] == slug && run["condition"] == "treatment", runs)
 
         if length(off_matches) == 0 && length(on_matches) == 0
             continue
@@ -77,10 +77,10 @@ function validate_pairs(runs::AbstractVector, models::AbstractVector{<:AbstractS
         end
 
         if length(off_matches) > 1
-            push!(problems, "duplicate heartbeat_off runs: model=$(slug) ids=[$(join((m["id"] for m in off_matches), ", "))]")
+            push!(problems, "duplicate baseline runs: model=$(slug) ids=[$(join((m["id"] for m in off_matches), ", "))]")
         end
         if length(on_matches) > 1
-            push!(problems, "duplicate heartbeat_on runs: model=$(slug) ids=[$(join((m["id"] for m in on_matches), ", "))]")
+            push!(problems, "duplicate treatment runs: model=$(slug) ids=[$(join((m["id"] for m in on_matches), ", "))]")
         end
 
         if length(off_matches) == 1 && length(on_matches) == 1
@@ -209,7 +209,7 @@ function append_model_section!(lines::Vector{String}, result::ModelResult)
     for row in result.run_summaries
         push!(
             lines,
-            "| `$(row["heartbeat"])` | $(row["rows"]) | $(row["first_ms"]) | $(row["last_ms"]) | $(fmt(row["mean_delta"])) | $(fmt(row["max_delta"])) | $(fmt(row["final_delta"])) | $(fmt(row["mean_entropy"])) | $(fmt(row["final_entropy"])) |",
+            "| `$(row["condition"])` | $(row["rows"]) | $(row["first_ms"]) | $(row["last_ms"]) | $(fmt(row["mean_delta"])) | $(fmt(row["max_delta"])) | $(fmt(row["final_delta"])) | $(fmt(row["mean_entropy"])) | $(fmt(row["final_entropy"])) |",
         )
     end
     push!(lines, "")

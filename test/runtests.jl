@@ -76,9 +76,9 @@ end
         saaq_delta_q_v15_target = [1.5, 1.6, 1.7, 1.8],
         routing_entropy = [0.1, 0.2, 0.3, 0.4],
     )
+    off_run = Dict{String,Any}("id" => "run_001", "condition" => "baseline", "model" => "test_model", "telemetry_source" => "csv_re4_path_tracing_telemetry", "family" => "test")
 
-    off_run = Dict{String,Any}("id" => "run_001", "heartbeat" => "heartbeat_off", "model" => "test_model", "telemetry_source" => "csv_re4_path_tracing_telemetry", "family" => "test")
-    on_run = Dict{String,Any}("id" => "run_002", "heartbeat" => "heartbeat_on", "model" => "test_model", "telemetry_source" => "csv_re4_path_tracing_telemetry", "family" => "test")
+    on_run = Dict{String,Any}("id" => "run_002", "condition" => "treatment", "model" => "test_model", "telemetry_source" => "csv_re4_path_tracing_telemetry", "family" => "test")
 
     delta_col = :saaq_delta_q_v15_target
     entropy_col = :routing_entropy
@@ -178,8 +178,8 @@ end
     off_run = run_list[1]
     on_run = run_list[2]
 
-    @test off_run["heartbeat"] == "heartbeat_off"
-    @test on_run["heartbeat"] == "heartbeat_on"
+    @test off_run["condition"] == "baseline"
+    @test on_run["condition"] == "treatment"
     @test off_run["model"] == "test_model"
     @test off_run["campaign"] == "test_campaign"
     @test off_run["blessed"] == true
@@ -191,11 +191,11 @@ end
         "id" => "run_abc",
         "model" => "olmoe-1b-7b",
         "telemetry_source" => "csv_re4_path_tracing_telemetry",
-        "heartbeat" => "heartbeat_off",
+        "condition" => "baseline",
         "family" => "olmoe",
     )
 
-    expected = joinpath(SurrogateViz.IMPORT_ROOT, "olmoe-1b-7b", "csv_re4_path_tracing_telemetry", "heartbeat_off", "run_abc", "latent_telemetry.csv")
+    expected = joinpath(SurrogateViz.IMPORT_ROOT, "olmoe-1b-7b", "csv_re4_path_tracing_telemetry", "baseline", "run_abc", "latent_telemetry.csv")
     @test SurrogateViz.imported_latent_path(off_run) == expected
 end
 
@@ -209,7 +209,7 @@ end
         "id" => "../etc/passwd",
         "model" => "test_model",
         "telemetry_source" => "csv_re4_path_tracing_telemetry",
-        "heartbeat" => "heartbeat_off",
+        "condition" => "baseline",
     )
     @test_throws ErrorException SurrogateViz.imported_latent_path(traversal_run)
 
@@ -217,7 +217,7 @@ end
         "id" => "run_abc",
         "model" => "/etc",
         "telemetry_source" => "csv_re4_path_tracing_telemetry",
-        "heartbeat" => "heartbeat_off",
+        "condition" => "baseline",
     )
     @test_throws ErrorException SurrogateViz.imported_latent_path(abs_run)
 
@@ -225,7 +225,7 @@ end
         "id" => "run_abc",
         "model" => "test_model",
         "telemetry_source" => "csv_re4\\path_tracing_telemetry",
-        "heartbeat" => "heartbeat_off",
+        "condition" => "baseline",
     )
     @test_throws ErrorException SurrogateViz.imported_latent_path(backslash_run)
 
@@ -233,7 +233,7 @@ end
         "id" => "run_abc",
         "model" => "olmoe-1b-7b",
         "telemetry_source" => "csv_re4_path_tracing_telemetry",
-        "heartbeat" => "heartbeat_off",
+        "condition" => "baseline",
     )
     @test SurrogateViz.imported_latent_path(good_run) isa String
 end
@@ -271,8 +271,8 @@ end
     runs = TOML.parsefile(fixture_path)
     run_list = runs["runs"]
 
-    off_run = filter(r -> r["heartbeat"] == "heartbeat_off", run_list)
-    on_run = filter(r -> r["heartbeat"] == "heartbeat_on", run_list)
+    off_run = filter(r -> r["condition"] == "baseline", run_list)
+    on_run = filter(r -> r["condition"] == "treatment", run_list)
 
     @test length(off_run) == 1
     @test length(on_run) == 1

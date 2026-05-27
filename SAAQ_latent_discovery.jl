@@ -1,6 +1,6 @@
 # SAAQ latent equation discovery over imported corinth-canal runs
 #
-# Selects runs by RUN_ID or MODEL/CAMPAIGN/HEARTBEAT/REPEAT_IDX from
+# Selects runs by RUN_ID or MODEL/CAMPAIGN/CONDITION/REPEAT_IDX from
 # data/selected_runs.toml, loads their latent telemetry, validates columns,
 # and runs SymbolicRegression.jl.
 #
@@ -55,7 +55,7 @@ end
 function select_runs_by_metadata(runs;
     model::Union{Nothing,AbstractString} = nothing,
     campaign::Union{Nothing,AbstractString} = nothing,
-    heartbeat::Union{Nothing,AbstractString} = nothing,
+    condition::Union{Nothing,AbstractString} = nothing,
     repeat_idx::Union{Nothing,Integer} = nothing,
     telemetry_source::Union{Nothing,AbstractString} = nothing,
     rule::Union{Nothing,AbstractString} = nothing,
@@ -63,7 +63,7 @@ function select_runs_by_metadata(runs;
     matched = filter(runs) do r
         (model === nothing || r["model"] == model) &&
         (campaign === nothing || r["campaign"] == campaign) &&
-        (heartbeat === nothing || r["heartbeat"] == heartbeat) &&
+        (condition === nothing || r["condition"] == condition) &&
         (repeat_idx === nothing || Int(r["repeat_idx"]) == repeat_idx) &&
         (telemetry_source === nothing || r["telemetry_source"] == telemetry_source) &&
         (rule === nothing || r["rule"] == rule)
@@ -105,7 +105,7 @@ function write_metadata(run::Dict{String,<:Any}, out_dir::AbstractString;
         "run_id" => run["id"],
         "model" => run["model"],
         "telemetry_source" => run["telemetry_source"],
-        "heartbeat" => run["heartbeat"],
+        "condition" => run["condition"],
         "repeat_idx" => Int(run["repeat_idx"]),
         "rule" => run["rule"],
         "feature_columns" => string.(FEATURE_COLS),
@@ -141,7 +141,7 @@ function main()
     run_id = get(ENV, "RUN_ID", nothing)
     model = get(ENV, "MODEL", nothing)
     campaign = get(ENV, "CAMPAIGN", nothing)
-    heartbeat = get(ENV, "HEARTBEAT", nothing)
+    condition = get(ENV, "CONDITION", nothing)
     repeat_idx = let v = get(ENV, "REPEAT_IDX", nothing)
         v === nothing ? nothing : parse(Int, v)
     end
@@ -155,7 +155,7 @@ function main()
         run_id = run_id,
         model = model,
         campaign = campaign,
-        heartbeat = heartbeat,
+        condition = condition,
         repeat_idx = repeat_idx,
         telemetry_source = telemetry_source,
         rule = rule,

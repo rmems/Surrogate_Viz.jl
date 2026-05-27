@@ -17,9 +17,9 @@ end
 function imported_latent_path(run::Dict{String,<:Any})
     model = validate_path_component("model", run["model"])
     src = validate_path_component("telemetry_source", run["telemetry_source"])
-    hb = validate_path_component("heartbeat", run["heartbeat"])
+    cond = validate_path_component("condition", run["condition"])
     id = validate_path_component("id", run["id"])
-    joinpath(IMPORT_ROOT, model, src, hb, id, "latent_telemetry.csv")
+    joinpath(IMPORT_ROOT, model, src, cond, id, "latent_telemetry.csv")
 end
 
 function load_latent_df(run::Dict{String,<:Any})
@@ -70,14 +70,14 @@ to_float64_vec(col) = Float64[Float64(v) for v in skipmissing(col)]
 to_int_ms(v) = Int(round(Float64(v)))
 
 function summarise_run(df::DataFrame, run::Dict{String,<:Any}, delta_col::Symbol, entropy_col::Union{Nothing,Symbol})
-    nrow(df) > 0 || error("summarise_run: empty DataFrame for run id=$(run["id"]) heartbeat=$(run["heartbeat"])")
+    nrow(df) > 0 || error("summarise_run: empty DataFrame for run id=$(run["id"]) condition=$(run["condition"])")
 
     delta_values = to_float64_vec(df[!, delta_col])
     isempty(delta_values) && error("summarise_run: column $(delta_col) is empty after dropping missing values for run $(run["id"])")
 
     row = Dict{String,Any}(
         "run_id" => run["id"],
-        "heartbeat" => run["heartbeat"],
+        "condition" => run["condition"],
         "rows" => nrow(df),
         "first_ms" => to_int_ms(first(df.timestamp_ms)),
         "last_ms" => to_int_ms(last(df.timestamp_ms)),
@@ -110,7 +110,7 @@ function pairwise_summary(off_df::DataFrame, on_df::DataFrame, delta_col::Symbol
         on = :timestamp_ms,
     )
 
-    nrow(joined) > 0 || error("No overlapping timestamps between heartbeat_off and heartbeat_on runs")
+    nrow(joined) > 0 || error("No overlapping timestamps between the provided runs")
     joined.delta_on_minus_off = joined.delta_on .- joined.delta_off
 
     summary = Dict{String,Any}(
