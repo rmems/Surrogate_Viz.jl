@@ -11,10 +11,12 @@ using CSV
 using DataFrames
 using Dates
 
-condition_key(run::Dict{String,<:Any}) = haskey(run, "condition") ? run["condition"] : run["heartbeat"]
-
-function latent_csv_path(run::Dict{String,<:Any}; import_root::AbstractString = Surrogate_Viz.IMPORT_ROOT)
-    joinpath(import_root, run["model"], run["telemetry_source"], condition_key(run), run["id"], "latent_telemetry.csv")
+function _heatmap_latent_path(
+    model_family, telemetry_source, heartbeat_enabled;
+    import_root::AbstractString = Surrogate_Viz.IMPORT_ROOT,
+)
+    condition_label = heartbeat_enabled ? "heartbeat_on" : "heartbeat_off"
+    joinpath(import_root, model_family, telemetry_source, condition_label, "latent_telemetry.csv")
 end
 
 function delta_color(v, vmax)
@@ -40,13 +42,15 @@ function compute_heatmap_data(
             repeat_df = filter(:repeat_idx => ==(repeat_idx), model_df)
             off_df_raw = filter(:heartbeat_enabled => ==(false), repeat_df)
             on_df_raw  = filter(:heartbeat_enabled => ==(true),  repeat_df)
-            if isempty(off_df_raw) || isempty(on_df_raw); continue; end
+            isempty(off_df_raw) || isempty(on_df_raw) && continue
 
-            run_off = Dict{String,Any}(zip(names(off_df_raw), eachrow(off_df_raw)[1]))
-            run_on  = Dict{String,Any}(zip(names(on_df_raw),  eachrow(on_df_raw)[1]))
+            model_col = hasproperty(real_df, :model_family) ? :model_family : :model_slug
+            tel_col   = hasproperty(real_df, :telemetry_source) ? :telemetry_source : :telemetry_source
 
-            path_off = latent_csv_path(run_off; import_root)
-            path_on  = latent_csv_path(run_on;  import_root)
+            path_off = _heatmap_latent_path(
+                off_df_raw[1, model_col], off_df_raw[1, tel_col], false; import_root)
+            path_on  = _heatmap_latent_path(
+                on_df_raw[1, model_col],  on_df_raw[1, tel_col],  true;  import_root)
             (isfile(path_off) && isfile(path_on)) || continue
 
             df_off = CSV.read(path_off, DataFrame)
@@ -54,27 +58,38 @@ function compute_heatmap_data(
 
             frames = [df_off, df_on]
             common = intersect((Set(String.(names(df))) for df in frames)...)
-            detected_col = :saaq_delta_q_v15_target
-            if !(detected_col in common)
+            detected_col_name = "saaq_delta_q_v15_target"
+            if !(detected_col_name in common)
                 continue
             end
+            detected_col = Symbol(detected_col_name)
 
-            joined, _ = pairwise_summary(df_off, df_on, detected_col, nothing)
+            try
+                joined, _ = pairwise_summary(df_off, df_on, detected_col, nothing)
+            catch e
+                (e isa ErrorException && occursin("overlapping timestamps", e.msg)) || rethrow(e)
+                @debug "Skipping model=$(model) repeat=$(repeat_idx): no overlapping timestamps" continue
+                continue
+            end
             nrow(joined) == 0 && continue
-            if !(:delta_on_minus_off in names(joined)); continue; end
-            deltas = Float64.(joined.delta_on_minus_off)
+            deltas_col = :delta_on_minus_off
+            if !hasproperty(joined, deltas_col); continue; end
+            deltas = Float64.(joined[!, deltas_col])
             isempty(deltas) && continue
 
             n = length(deltas)
             nb = bucket_count
-            bucket_size = max(1, n ÷ nb)
-            buckets = Float64[
-                (s+1 > e) ? 0.0 : sum(deltas[s+1:e]) / (e - s)
-                for (s, e) in zip(0:bucket_size:(n-1), bucket_size:bucket_size:n)
-            ]
-            if n % nb != 0 && nb * bucket_size < n
-                overflow = deltas[nb * bucket_size + 1:end]
-                push!(buckets, isempty(overflow) ? 0.0 : sum(overflow) / length(overflow))
+            buckets = zeros(Float64, nb)
+            counts  = zeros(Int, nb)
+            for (i, val) in enumerate(deltas)
+                b = min(nb, (i - 1) * nb ÷ n + 1)
+                buckets[b] += val
+                counts[b]  += 1
+            end
+            for b in 1:nb
+                if counts[b] > 0
+                    buckets[b] /= counts[b]
+                end
             end
 
             key = "$(model) [r$(repeat_idx)]"
@@ -94,7 +109,8 @@ function build_heatmap_panel(heatmap_data; n_buckets=20)
     write(buf, "</tr></thead><tbody>")
     for (model, buckets) in heatmap_data
         write(buf, "<tr><td class='hm-model'>$(model)</td>")
-        for val in buckets[1:n_buckets]
+        for i in 1:n_buckets
+            val = (i <= length(buckets)) ? buckets[i] : 0.0
             color = delta_color(val, vmax)
             write(buf, """<td class='hm-cell' style='background:$(color)' title='$(round(val,digits=3))'></td>""")
         end
