@@ -47,7 +47,6 @@ function load_latent_data(path::AbstractString)
         :avg_pop_firing_rate_hz,
         :routing_entropy,
         :condition_signal,
-        :condition_enabled,
         :gpu_temp_c,
         :gpu_power_w,
         :cpu_tctl_c,
