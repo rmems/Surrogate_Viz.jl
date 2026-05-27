@@ -14,8 +14,8 @@ using CSV
 using DataFrames
 import TOML
 import SymbolicRegression
-using Surrogate_Viz
-const SV = Surrogate_Viz
+include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
+const SV = getfield(Main, :Surrogate_Viz)
 
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")

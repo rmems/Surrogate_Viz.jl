@@ -332,7 +332,10 @@ function _nothing_to_missing(v::Union{Nothing,T}) where T
 end
 
 include(joinpath(@__DIR__, "normalizers", "SaaqNormalizer.jl"))
-using .SaaqNormalizer
+const _saaq_normalizer = getfield(@__MODULE__, :SaaqNormalizer)
+const normalize_bundle_to_tables = getfield(_saaq_normalizer, :normalize_bundle_to_tables)
+const normalize_bundles_dir = getfield(_saaq_normalizer, :normalize_bundles_dir)
+const normalize_saaq_bundle_to_tables = getfield(_saaq_normalizer, :normalize_saaq_bundle_to_tables)
 
 export imported_latent_path, load_latent_df, detect_delta_column, maybe_entropy_column
 export to_float64_vec, to_int_ms, summarise_run, pairwise_summary, fmt

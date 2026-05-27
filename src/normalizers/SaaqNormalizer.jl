@@ -4,7 +4,10 @@ module SaaqNormalizer
 
 using DataFrames
 
-import ..Surrogate_Viz: SaaqBundle, load_saaq_bundle, _nothing_to_missing
+const _parent_mod = parentmodule(@__MODULE__)
+const _load_saaq_bundle = getfield(_parent_mod, :load_saaq_bundle)
+const _nothing_to_missing = getfield(_parent_mod, :_nothing_to_missing)
+const _saaq_bundle_type = getfield(_parent_mod, :SaaqBundle)
 
 """
     normalize_saaq_bundle_to_tables(bundle_path::AbstractString) -> (DataFrame, DataFrame, DataFrame)
@@ -15,7 +18,7 @@ Load a bundle from `bundle_path` and return three normalized DataFrames:
 This is a convenience wrapper around `load_saaq_bundle` + `normalize_bundle_to_tables`.
 """
 function normalize_saaq_bundle_to_tables(bundle_path::AbstractString)::Tuple{DataFrame, DataFrame, DataFrame}
-    bundle = load_saaq_bundle(bundle_path)
+    bundle = _load_saaq_bundle(bundle_path)
     return normalize_bundle_to_tables(bundle)
 end
 
@@ -30,7 +33,7 @@ Convert a single `SaaqBundle` into three normalized DataFrames:
 Unknown manifest fields are preserved as `extra_<field>` columns.
 Missing optional metrics are represented as `missing`.
 """
-function normalize_bundle_to_tables(bundle::SaaqBundle)::Tuple{DataFrame, DataFrame, DataFrame}
+function normalize_bundle_to_tables(bundle::_saaq_bundle_type)::Tuple{DataFrame, DataFrame, DataFrame}
     m = bundle.manifest
     metrics_row = bundle.metrics
 
@@ -143,7 +146,7 @@ function normalize_bundles_dir(input_dir::AbstractString)::Tuple{DataFrame, Data
         if "run_manifest.json" in files
             bundle_path = root
             try
-                bundle = load_saaq_bundle(bundle_path)
+                bundle = _load_saaq_bundle(bundle_path)
                 runs_df, metrics_df, warnings_df = normalize_bundle_to_tables(bundle)
                 push!(runs_dfs, runs_df)
                 push!(metrics_dfs, metrics_df)
