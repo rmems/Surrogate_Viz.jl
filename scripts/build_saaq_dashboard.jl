@@ -11,6 +11,99 @@ using CSV
 using DataFrames
 using Dates
 
+condition_key(run::Dict{String,<:Any}) = haskey(run, "condition") ? run["condition"] : run["heartbeat"]
+
+function latent_csv_path(run::Dict{String,<:Any}; import_root::AbstractString = Surrogate_Viz.IMPORT_ROOT)
+    joinpath(import_root, run["model"], run["telemetry_source"], condition_key(run), run["id"], "latent_telemetry.csv")
+end
+
+function delta_color(v, vmax)
+    v == 0 && return "#e0e0e0"
+    t = clamp(abs(v) / vmax, 0.0, 1.0)
+    l = round(Int, 65 - t * 35)
+    v > 0 ? "hsl(0,70%,$(l)%)" : "hsl(220,70%,$(l)%)"
+end
+
+function compute_heatmap_data(
+    runs_df;
+    import_root::AbstractString = Surrogate_Viz.IMPORT_ROOT,
+    bucket_count::Int = 20,
+)
+    heatmap_data = Dict{String,Vector{Float64}}()
+    real_df = filter(:run_status => ==("real"), runs_df)
+    isempty(real_df) && return heatmap_data
+
+    models = unique(real_df[!, :model_family])
+    for model in models
+        model_df = filter(:model_family => ==(model), real_df)
+        for repeat_idx in unique(model_df[!, :repeat_idx])
+            repeat_df = filter(:repeat_idx => ==(repeat_idx), model_df)
+            off_df_raw = filter(:heartbeat_enabled => ==(false), repeat_df)
+            on_df_raw  = filter(:heartbeat_enabled => ==(true),  repeat_df)
+            if isempty(off_df_raw) || isempty(on_df_raw); continue; end
+
+            run_off = Dict{String,Any}(zip(names(off_df_raw), eachrow(off_df_raw)[1]))
+            run_on  = Dict{String,Any}(zip(names(on_df_raw),  eachrow(on_df_raw)[1]))
+
+            path_off = latent_csv_path(run_off; import_root)
+            path_on  = latent_csv_path(run_on;  import_root)
+            (isfile(path_off) && isfile(path_on)) || continue
+
+            df_off = CSV.read(path_off, DataFrame)
+            df_on  = CSV.read(path_on,  DataFrame)
+
+            frames = [df_off, df_on]
+            common = intersect((Set(String.(names(df))) for df in frames)...)
+            detected_col = :saaq_delta_q_v15_target
+            if !(detected_col in common)
+                continue
+            end
+
+            joined, _ = pairwise_summary(df_off, df_on, detected_col, nothing)
+            nrow(joined) == 0 && continue
+            if !(:delta_on_minus_off in names(joined)); continue; end
+            deltas = Float64.(joined.delta_on_minus_off)
+            isempty(deltas) && continue
+
+            n = length(deltas)
+            nb = bucket_count
+            bucket_size = max(1, n ÷ nb)
+            buckets = Float64[
+                (s+1 > e) ? 0.0 : sum(deltas[s+1:e]) / (e - s)
+                for (s, e) in zip(0:bucket_size:(n-1), bucket_size:bucket_size:n)
+            ]
+            if n % nb != 0 && nb * bucket_size < n
+                overflow = deltas[nb * bucket_size + 1:end]
+                push!(buckets, isempty(overflow) ? 0.0 : sum(overflow) / length(overflow))
+            end
+
+            key = "$(model) [r$(repeat_idx)]"
+            heatmap_data[key] = buckets
+        end
+    end
+    return heatmap_data
+end
+
+function build_heatmap_panel(heatmap_data; n_buckets=20)
+    isempty(heatmap_data) && return ""
+    vmax = max(maximum(abs, v) for v in values(heatmap_data))
+    vmax = max(vmax, 1e-9)
+    buf = IOBuffer()
+    write(buf, """<div class="panel"><div class="panel-header">Delta Heatmap — treatment − baseline</div><div class="panel-body"><table class="heatmap-table"><thead><tr><th>Model</th>""")
+    for i in 1:n_buckets; write(buf, "<th>$i</th>"); end
+    write(buf, "</tr></thead><tbody>")
+    for (model, buckets) in heatmap_data
+        write(buf, "<tr><td class='hm-model'>$(model)</td>")
+        for val in buckets[1:n_buckets]
+            color = delta_color(val, vmax)
+            write(buf, """<td class='hm-cell' style='background:$(color)' title='$(round(val,digits=3))'></td>""")
+        end
+        write(buf, "</tr>")
+    end
+    write(buf, "</tbody></table></div></div>")
+    String(take!(buf))
+end
+
 function fmt_val(v)
     if ismissing(v) || v === missing
         return "&mdash;"
@@ -23,7 +116,7 @@ function fmt_val(v)
     end
 end
 
-function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label)
+function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heatmap_data=Dict())
     buf = IOBuffer()
     write(buf, """
     <!DOCTYPE html>
@@ -68,6 +161,10 @@ function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label)
     .col-ticks   { min-width: 70px; text-align: right; }
     .col-metrics { min-width: 80px; text-align: center; }
     .col-warn    { min-width: 60px; text-align: center; }
+    .heatmap-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .heatmap-table th { font-size: 10px; padding: 3px 4px; text-align: center; }
+    .heatmap-table td.hm-cell { width: 3%; min-width: 18px; height: 28px; border: 1px solid #fff; }
+    td.hm-model { text-align: left; padding: 4px 8px; font-size: 11px; white-space: nowrap; width: 160px; }
     </style>
     </head>
     <body>
@@ -170,6 +267,8 @@ function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label)
     </div>
     """)
 
+    write(buf, build_heatmap_panel(heatmap_data))
+
     if nrow(warnings_df) > 0
         write(buf, """
         <div class="panel">
@@ -268,7 +367,8 @@ function main()
     out_dir = joinpath(report_dir, date_label)
     mkpath(out_dir)
 
-    dashboard_html = build_dashboard_html(runs_df, metrics_df, warnings_df; date_label)
+    heatmap_data = compute_heatmap_data(runs_df)
+    dashboard_html = build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heatmap_data)
     summary_md = build_summary_md(runs_df, metrics_df, warnings_df; date_label)
 
     dashboard_path = joinpath(out_dir, "dashboard.html")
