@@ -13,11 +13,12 @@ using DataFrames
 import Dates
 
 function _heatmap_latent_path(
-    model_family, telemetry_source, heartbeat_enabled;
+    model_family, telemetry_source, heartbeat_enabled, run_id;
     import_root::AbstractString = SV.IMPORT_ROOT,
 )
     condition_label = heartbeat_enabled ? "heartbeat_on" : "heartbeat_off"
-    joinpath(import_root, model_family, telemetry_source, condition_label, "latent_telemetry.csv")
+    SV.validate_path_component("run_id", run_id)
+    joinpath(import_root, model_family, telemetry_source, condition_label, run_id, "latent_telemetry.csv")
 end
 
 function delta_color(v, vmax)
@@ -43,15 +44,15 @@ function compute_heatmap_data(
             repeat_df = filter(:repeat_idx => ==(repeat_idx), model_df)
             off_df_raw = filter(:heartbeat_enabled => ==(false), repeat_df)
             on_df_raw  = filter(:heartbeat_enabled => ==(true),  repeat_df)
-            isempty(off_df_raw) || isempty(on_df_raw) && continue
+            (isempty(off_df_raw) || isempty(on_df_raw)) && continue
 
             model_col = hasproperty(real_df, :model_family) ? :model_family : :model_slug
             tel_col   = hasproperty(real_df, :telemetry_source) ? :telemetry_source : :telemetry_source
 
             path_off = _heatmap_latent_path(
-                off_df_raw[1, model_col], off_df_raw[1, tel_col], false; import_root)
+                off_df_raw[1, model_col], off_df_raw[1, tel_col], false, off_df_raw[1, :run_id]; import_root)
             path_on  = _heatmap_latent_path(
-                on_df_raw[1, model_col],  on_df_raw[1, tel_col],  true;  import_root)
+                on_df_raw[1, model_col],  on_df_raw[1, tel_col],  true,  on_df_raw[1, :run_id];  import_root)
             (isfile(path_off) && isfile(path_on)) || continue
 
             df_off = CSV.read(path_off, DataFrame)
@@ -76,7 +77,8 @@ function compute_heatmap_data(
             nrow(joined) == 0 && continue
             deltas_col = :delta_on_minus_off
             if !hasproperty(joined, deltas_col); continue; end
-            deltas = Float64.(joined[!, deltas_col])
+            deltas = collect(skipmissing(joined[!, deltas_col]))
+            deltas = Float64.(deltas)
             isempty(deltas) && continue
 
             n = length(deltas)
@@ -103,14 +105,14 @@ end
 
 function build_heatmap_panel(heatmap_data; n_buckets=20)
     isempty(heatmap_data) && return ""
-    vmax = max(maximum(abs, v) for v in values(heatmap_data))
+    vmax = maximum(maximum(abs, v) for v in values(heatmap_data))
     vmax = max(vmax, 1e-9)
     buf = IOBuffer()
     write(buf, """<div class="panel"><div class="panel-header">Delta Heatmap — treatment − baseline</div><div class="panel-body"><table class="heatmap-table"><thead><tr><th>Model</th>""")
     for i in 1:n_buckets; write(buf, "<th>$i</th>"); end
     write(buf, "</tr></thead><tbody>")
     for (model, buckets) in heatmap_data
-        write(buf, "<tr><td class='hm-model'>$(model)</td>")
+        write(buf, "<tr><td class='hm-model'>$(html_escape(model))</td>")
         for i in 1:n_buckets
             val = (i <= length(buckets)) ? buckets[i] : 0.0
             color = delta_color(val, vmax)
@@ -120,6 +122,15 @@ function build_heatmap_panel(heatmap_data; n_buckets=20)
     end
     write(buf, "</tbody></table></div></div>")
     String(take!(buf))
+end
+
+function html_escape(s)
+    s = replace(string(s), "&" => "&amp;")
+    s = replace(s, "<" => "&lt;")
+    s = replace(s, ">" => "&gt;")
+    s = replace(s, "\"" => "&quot;")
+    s = replace(s, "'" => "&#39;")
+    return s
 end
 
 function fmt_val(v)
@@ -302,10 +313,10 @@ function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heat
         """)
         for row in eachrow(warnings_df)
             write(buf, "<tr>")
-            write(buf, "<td><code>$(row.run_id)</code></td>")
-            write(buf, "<td>$(fmt_val(row.warning_category))</td>")
-            write(buf, "<td>$(fmt_val(row.warning_message))</td>")
-            write(buf, "<td>$(fmt_val(row.severity))</td>")
+            write(buf, "<td><code>$(html_escape(row.run_id))</code></td>")
+            write(buf, "<td>$(html_escape(fmt_val(row.warning_category)))</td>")
+            write(buf, "<td>$(html_escape(fmt_val(row.warning_message)))</td>")
+            write(buf, "<td>$(html_escape(fmt_val(row.severity)))</td>")
             write(buf, "</tr>\n")
         end
         write(buf, "</tbody></table></div></div>\n")

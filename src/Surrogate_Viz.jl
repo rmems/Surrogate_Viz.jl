@@ -213,8 +213,10 @@ KNOWN_METRICS_FIELDS = [
     :first_timestamp_ms, :last_timestamp_ms, :repeat_determinism,
 ]
 
-function _status_from_validation(v::String, error::Union{Nothing,String})
-    if v ∈ ("completed", "success")
+function _status_from_validation(v::Union{Nothing,String}, error::Union{Nothing,String})
+    if v === nothing
+        return error !== nothing && !isempty(error) ? failed : real
+    elseif v ∈ ("completed", "success")
         return real
     elseif v ∈ ("synthetic",)
         return synthetic
@@ -411,7 +413,7 @@ function normalize_bundle_to_tables(bundle::SaaqBundle)::Tuple{DataFrame, DataFr
             "metric_value" => metrics_row.repeat_determinism, "metric_category" => "quality"))
     end
 
-    metrics_df = DataFrame(metrics_rows)
+    metrics_df = isempty(metrics_rows) ? DataFrame(run_id=String[], metric_name=String[], metric_value=Any[], metric_category=String[]) : DataFrame(metrics_rows)
 
     warnings_rows = Dict{String,Any}[
         Dict{String,Any}("run_id" => m.run_id, "warning_category" => w.category,
@@ -424,9 +426,9 @@ function normalize_bundle_to_tables(bundle::SaaqBundle)::Tuple{DataFrame, DataFr
 end
 
 function normalize_bundles_dir(input_dir::AbstractString)::Tuple{DataFrame, DataFrame, DataFrame}
-    all_runs = DataFrame()
-    all_metrics = DataFrame()
-    all_warnings = DataFrame()
+    runs_dfs = DataFrame[]
+    metrics_dfs = DataFrame[]
+    warnings_dfs = DataFrame[]
 
     if !isdir(input_dir)
         error("Input directory not found: $(input_dir)")
@@ -438,20 +440,18 @@ function normalize_bundles_dir(input_dir::AbstractString)::Tuple{DataFrame, Data
             try
                 bundle = load_saaq_bundle(bundle_path)
                 runs_df, metrics_df, warnings_df = normalize_bundle_to_tables(bundle)
-                all_runs = vcat(all_runs, runs_df, cols=:union)
-                all_metrics = vcat(all_metrics, metrics_df, cols=:union)
-                all_warnings = vcat(all_warnings, warnings_df, cols=:union)
+                push!(runs_dfs, runs_df)
+                push!(metrics_dfs, metrics_df)
+                push!(warnings_dfs, warnings_df)
             catch e
                 @warn "Failed to load bundle at $(bundle_path): $(e)"
             end
         end
     end
 
-    if nrow(all_runs) == 0
-        all_runs = DataFrame(run_id=String[], run_status=String[])
-        all_metrics = DataFrame(run_id=String[], metric_name=String[], metric_value=Any[], metric_category=String[])
-        all_warnings = DataFrame(run_id=String[], warning_category=String[], warning_message=String[], tensor_name=Union{String,Nothing}[], severity=String[])
-    end
+    all_runs = isempty(runs_dfs) ? DataFrame(run_id=String[], run_status=String[]) : vcat(runs_dfs..., cols=:union)
+    all_metrics = isempty(metrics_dfs) ? DataFrame(run_id=String[], metric_name=String[], metric_value=Any[], metric_category=String[]) : vcat(metrics_dfs..., cols=:union)
+    all_warnings = isempty(warnings_dfs) ? DataFrame(run_id=String[], warning_category=String[], warning_message=String[], tensor_name=Union{String,Nothing}[], severity=String[]) : vcat(warnings_dfs..., cols=:union)
 
     return all_runs, all_metrics, all_warnings
 end
