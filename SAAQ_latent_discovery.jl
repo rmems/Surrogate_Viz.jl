@@ -12,6 +12,7 @@ const PkgMod = let pkgid = Base.PkgId(Base.UUID("44cfe95a-1eb2-52ea-b672-e2afdf6
 end
 PkgMod.activate(@__DIR__)
 PkgMod.instantiate()
+const parse_toml_file = getfield(Base.TOML, :parsefile)
 
 using CSV
 using DataFrames
@@ -41,7 +42,7 @@ const TARGET_COL = :saaq_delta_q_target
 
 function load_runs_manifest(path::AbstractString = SELECTED_RUNS_PATH)
     isfile(path) || error("Missing selected runs manifest: $(path)")
-    manifest = Base.TOML.parsefile(path)
+    manifest = parse_toml_file(path)
     runs = get(manifest, "runs", nothing)
     runs isa Vector || error("Expected [[runs]] entries in $(path)")
     isempty(runs) && error("No selected runs found in $(path)")
