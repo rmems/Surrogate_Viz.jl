@@ -14,8 +14,8 @@ using Plots
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")
 const OUTPUT_DIR = joinpath(REPO_ROOT, "outputs", "olmoe-1b-7b", "dashboards")
-const REPORT_PATH = joinpath(OUTPUT_DIR, "saaq15_re4_condition_comparison.md")
-const PLOT_PATH = joinpath(OUTPUT_DIR, "saaq15_re4_condition_comparison.png")
+const REPORT_PATH = joinpath(OUTPUT_DIR, "saaq1_5_re4_condition_comparison.md")
+const PLOT_PATH = joinpath(OUTPUT_DIR, "saaq1_5_re4_condition_comparison.png")
 
 function selected_repeat_idx()
     if !isempty(ARGS)
@@ -106,6 +106,7 @@ function write_report(
     push!(lines, "- Model: `$(off_run["model"])` (`$(off_run["family"])`)")
     push!(lines, "- Telemetry source: `$(off_run["telemetry_source"])`")
     push!(lines, "- Rule: `$(off_run["rule"])`")
+    push!(lines, "- Equation source: `outputs/20260414_194227_v2pNMk/hall_of_fame.csv` (SymbolicRegression discovery)")
     push!(lines, "- Delta column: `$(delta_col)`")
     push!(lines, "- Routing entropy column: `$(entropy_col === nothing ? "not present" : string(entropy_col))`")
     push!(lines, "- Plot: `$(relpath(PLOT_PATH, REPO_ROOT))`")

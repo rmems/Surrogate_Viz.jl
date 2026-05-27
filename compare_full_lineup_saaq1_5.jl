@@ -15,11 +15,12 @@ using Plots
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")
 const OUTPUT_DIR = joinpath(REPO_ROOT, "outputs", "full_lineup")
-const REPORT_PATH = joinpath(OUTPUT_DIR, "full_lineup_saaq15_comparison.md")
+const REPORT_PATH = joinpath(OUTPUT_DIR, "full_lineup_saaq1_5_comparison.md")
 
 const CAMPAIGN = "full_lineup"
 const TELEMETRY_SOURCE = "csv_re4_path_tracing_telemetry"
 const RULE = "SaaqV1_5SqrtRate"
+const EQUATION_SOURCE = "outputs/20260414_194227_v2pNMk/hall_of_fame.csv"
 const REPEAT_IDX = 0
 
 const MODEL_ORDER = [
@@ -95,7 +96,7 @@ function validate_pairs(runs::AbstractVector, models::AbstractVector{<:AbstractS
     end
 
     isempty(available) && error(
-        "compare_full_lineup_saaq15.jl: no models with complete (off+on) runs found. " *
+        "compare_full_lineup_saaq1_5.jl: no models with complete (off+on) runs found. " *
         "Filter: campaign=$(CAMPAIGN), repeat_idx=$(REPEAT_IDX), " *
         "telemetry_source=$(TELEMETRY_SOURCE), rule=$(RULE). " *
         "Run `import_corinth_runs.jl` first.",
@@ -255,6 +256,7 @@ function write_report(results::Vector{ModelResult})
     push!(lines, "- Repeat index: `$(REPEAT_IDX)`")
     push!(lines, "- Telemetry source: `$(TELEMETRY_SOURCE)`")
     push!(lines, "- Rule: `$(RULE)`")
+    push!(lines, "- Equation source: `$(EQUATION_SOURCE)` (SymbolicRegression discovery)")
     push!(lines, "- Models: $(length(results)) ($(join((r.slug for r in results), ", ")))")
     push!(lines, "- Generated: `$(Dates.format(Dates.now(), "yyyy-mm-ddTHH:MM:SS"))`")
     push!(lines, "")
