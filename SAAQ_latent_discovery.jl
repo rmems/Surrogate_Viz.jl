@@ -12,10 +12,10 @@ Pkg.instantiate()
 
 using CSV
 using DataFrames
-using TOML
-
-include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
-using .Surrogate_Viz
+import TOML
+import SymbolicRegression
+using Surrogate_Viz
+const SV = Surrogate_Viz
 
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")
@@ -91,8 +91,8 @@ function build_feature_matrix(df::DataFrame, features::Vector{Symbol}, target::S
 end
 
 function sr_output_dir(run::Dict{String,<:Any})
-    model = Surrogate_Viz.validate_path_component("model", run["model"])
-    id = Surrogate_Viz.validate_path_component("id", run["id"])
+    model = SV.validate_path_component("model", run["model"])
+    id = SV.validate_path_component("id", run["id"])
     joinpath(REPO_ROOT, "outputs", model, "sr_results", id)
 end
 
@@ -129,8 +129,8 @@ function write_metadata(run::Dict{String,<:Any}, out_dir::AbstractString;
 end
 
 function run_sr(X, y; niterations::Int = 30, options_kwargs...)
-    opts = Options(; options_kwargs...)
-    hof = equation_search(X, y; niterations = niterations, options = opts,
+    opts = SymbolicRegression.Options(; options_kwargs...)
+    hof = SymbolicRegression.equation_search(X, y; niterations = niterations, options = opts,
         variable_names = string.(FEATURE_COLS))
     return hof
 end
@@ -165,7 +165,7 @@ function main()
 
     for run in selected
         println("\n=== Processing run $(run["id"]) ===")
-        csv_path = imported_latent_path(run)
+        csv_path = SV.imported_latent_path(run)
 
         if !isfile(csv_path)
             @warn "Skipping run $(run["id"]): latent telemetry not found at $(csv_path)"
@@ -193,8 +193,7 @@ function main()
 
         if niterations > 0
             println("Launching SR search ($(niterations) iterations)...")
-            @eval using SymbolicRegression
-            hof = Base.invokelatest(run_sr, X, y;
+            hof = run_sr(X, y;
                 niterations = niterations,
                 binary_operators = [+, -, *, /],
                 unary_operators = [exp, sqrt, SymbolicRegression.square],
@@ -203,7 +202,7 @@ function main()
                 npopulations = 20,
             )
             println("\n=== Pareto front for $(run["id"]) ===")
-            dominating = Base.invokelatest(SymbolicRegression.calculate_pareto_frontier, hof)
+            dominating = SymbolicRegression.calculate_pareto_frontier(hof)
             for member in dominating
                 println("Loss: $(member.loss)  Complexity: $(member.complexity)  Eq: $(member.tree)")
             end

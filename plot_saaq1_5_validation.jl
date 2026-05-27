@@ -1,7 +1,10 @@
+using Pkg
+Pkg.activate(@__DIR__)
+
 using CSV
 using DataFrames
-using Dates
-using Random
+import Dates
+import Random
 
 ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")
@@ -33,7 +36,7 @@ function default_dashboard_path()
     suffix = Random.randstring(6)
     dir = joinpath(@__DIR__, "outputs", model_name(), "dashboards", string(stamp, "_", suffix))
     mkpath(dir)
-    return joinpath(dir, "saaq15_validation_dashboard.png")
+    return joinpath(dir, "saaq1_5_validation_dashboard.png")
 end
 
 latent_input_path() = get(ARGS, 1, joinpath(@__DIR__, "data", model_name(), "snn_latent_telemetry.csv"))

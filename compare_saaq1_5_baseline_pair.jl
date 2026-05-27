@@ -1,9 +1,11 @@
+using Pkg
+Pkg.activate(@__DIR__)
+
 using CSV
 using DataFrames
-using TOML
-
-include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
-using .Surrogate_Viz
+import TOML
+using Surrogate_Viz
+const SV = Surrogate_Viz
 
 ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")
@@ -12,8 +14,8 @@ using Plots
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")
 const OUTPUT_DIR = joinpath(REPO_ROOT, "outputs", "olmoe-1b-7b", "dashboards")
-const REPORT_PATH = joinpath(OUTPUT_DIR, "saaq15_re4_condition_comparison.md")
-const PLOT_PATH = joinpath(OUTPUT_DIR, "saaq15_re4_condition_comparison.png")
+const REPORT_PATH = joinpath(OUTPUT_DIR, "saaq1_5_re4_condition_comparison.md")
+const PLOT_PATH = joinpath(OUTPUT_DIR, "saaq1_5_re4_condition_comparison.png")
 
 function selected_repeat_idx()
     if !isempty(ARGS)
@@ -104,6 +106,7 @@ function write_report(
     push!(lines, "- Model: `$(off_run["model"])` (`$(off_run["family"])`)")
     push!(lines, "- Telemetry source: `$(off_run["telemetry_source"])`")
     push!(lines, "- Rule: `$(off_run["rule"])`")
+    push!(lines, "- Equation source: `outputs/20260414_194227_v2pNMk/hall_of_fame.csv` (SymbolicRegression discovery)")
     push!(lines, "- Delta column: `$(delta_col)`")
     push!(lines, "- Routing entropy column: `$(entropy_col === nothing ? "not present" : string(entropy_col))`")
     push!(lines, "- Plot: `$(relpath(PLOT_PATH, REPO_ROOT))`")
@@ -114,7 +117,7 @@ function write_report(
     for row in run_summaries
         push!(
             lines,
-            "| `$(row["run_id"])` | `$(row["condition"])` | $(row["rows"]) | $(row["first_ms"]) | $(row["last_ms"]) | $(fmt(row["mean_delta"])) | $(fmt(row["max_delta"])) | $(fmt(row["final_delta"])) | $(fmt(row["mean_entropy"])) | $(fmt(row["final_entropy"])) |",
+            "| `$(row["run_id"])` | `$(row["condition"])` | $(row["rows"]) | $(row["first_ms"]) | $(row["last_ms"]) | $(SV.fmt(row["mean_delta"])) | $(SV.fmt(row["max_delta"])) | $(SV.fmt(row["final_delta"])) | $(SV.fmt(row["mean_entropy"])) | $(SV.fmt(row["final_entropy"])) |",
         )
     end
 
@@ -124,19 +127,19 @@ function write_report(
     push!(lines, "| Metric | Value |")
     push!(lines, "| --- | ---: |")
     push!(lines, "| Paired rows | $(pair_summary["paired_rows"]) |")
-    push!(lines, "| Mean delta (on - off) | $(fmt(pair_summary["mean_delta_on_minus_off"])) |")
-    push!(lines, "| Max abs delta (on - off) | $(fmt(pair_summary["max_abs_delta_on_minus_off"])) |")
-    push!(lines, "| Final delta (on - off) | $(fmt(pair_summary["final_delta_on_minus_off"])) |")
+    push!(lines, "| Mean delta (on - off) | $(SV.fmt(pair_summary["mean_delta_on_minus_off"])) |")
+    push!(lines, "| Max abs delta (on - off) | $(SV.fmt(pair_summary["max_abs_delta_on_minus_off"])) |")
+    push!(lines, "| Final delta (on - off) | $(SV.fmt(pair_summary["final_delta_on_minus_off"])) |")
     if haskey(pair_summary, "mean_entropy_on_minus_off")
-        push!(lines, "| Mean entropy (on - off) | $(fmt(pair_summary["mean_entropy_on_minus_off"])) |")
-        push!(lines, "| Final entropy (on - off) | $(fmt(pair_summary["final_entropy_on_minus_off"])) |")
+        push!(lines, "| Mean entropy (on - off) | $(SV.fmt(pair_summary["mean_entropy_on_minus_off"])) |")
+        push!(lines, "| Final entropy (on - off) | $(SV.fmt(pair_summary["final_entropy_on_minus_off"])) |")
     end
 
     push!(lines, "")
     push!(lines, "## Imported Inputs")
     push!(lines, "")
-    push!(lines, "- `$(relpath(imported_latent_path(off_run), REPO_ROOT))`")
-    push!(lines, "- `$(relpath(imported_latent_path(on_run), REPO_ROOT))`")
+    push!(lines, "- `$(relpath(SV.imported_latent_path(off_run), REPO_ROOT))`")
+    push!(lines, "- `$(relpath(SV.imported_latent_path(on_run), REPO_ROOT))`")
 
     open(REPORT_PATH, "w") do io
         write(io, join(lines, "\n"))
@@ -149,17 +152,17 @@ function main()
     runs = load_selected_runs(SELECTED_RUNS_PATH)
     off_run, on_run = blessed_pair(runs, repeat_idx)
 
-    off_df = load_latent_df(off_run)
-    on_df = load_latent_df(on_run)
+    off_df = SV.load_latent_df(off_run)
+    on_df = SV.load_latent_df(on_run)
 
-    delta_col = detect_delta_column([off_df, on_df])
-    entropy_col = maybe_entropy_column([off_df, on_df])
+    delta_col = SV.detect_delta_column([off_df, on_df])
+    entropy_col = SV.maybe_entropy_column([off_df, on_df])
 
     run_summaries = [
-        summarise_run(off_df, off_run, delta_col, entropy_col),
-        summarise_run(on_df, on_run, delta_col, entropy_col),
+        SV.summarise_run(off_df, off_run, delta_col, entropy_col),
+        SV.summarise_run(on_df, on_run, delta_col, entropy_col),
     ]
-    joined_df, pair_summary = pairwise_summary(off_df, on_df, delta_col, entropy_col)
+    joined_df, pair_summary = SV.pairwise_summary(off_df, on_df, delta_col, entropy_col)
 
     mkpath(OUTPUT_DIR)
     fig = build_plot(off_df, on_df, joined_df, delta_col, entropy_col)
@@ -167,8 +170,8 @@ function main()
     write_report(off_run, on_run, repeat_idx, delta_col, entropy_col, run_summaries, pair_summary)
 
     println("Compared blessed OLMoE baseline runs for repeat $(repeat_idx)")
-    println("Loaded control-off from $(imported_latent_path(off_run))")
-    println("Loaded control-on from $(imported_latent_path(on_run))")
+    println("Loaded control-off from $(SV.imported_latent_path(off_run))")
+    println("Loaded control-on from $(SV.imported_latent_path(on_run))")
     println("Saved plot to $(PLOT_PATH)")
     println("Saved markdown report to $(REPORT_PATH)")
 end
