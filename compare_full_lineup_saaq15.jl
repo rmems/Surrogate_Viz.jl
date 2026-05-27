@@ -5,7 +5,9 @@ using CSV
 using DataFrames
 import Dates
 import TOML
-using Surrogate_Viz
+include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
+using .Surrogate_Viz: imported_latent_path, load_latent_df, detect_delta_column,
+    maybe_entropy_column, summarise_run, pairwise_summary, fmt
 
 ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")

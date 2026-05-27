@@ -14,7 +14,8 @@ using CSV
 using DataFrames
 import TOML
 import SymbolicRegression
-using Surrogate_Viz
+include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
+using .Surrogate_Viz: imported_latent_path, validate_path_component
 
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")
@@ -90,8 +91,8 @@ function build_feature_matrix(df::DataFrame, features::Vector{Symbol}, target::S
 end
 
 function sr_output_dir(run::Dict{String,<:Any})
-    model = Surrogate_Viz.validate_path_component("model", run["model"])
-    id = Surrogate_Viz.validate_path_component("id", run["id"])
+    model = validate_path_component("model", run["model"])
+    id = validate_path_component("id", run["id"])
     joinpath(REPO_ROOT, "outputs", model, "sr_results", id)
 end
 

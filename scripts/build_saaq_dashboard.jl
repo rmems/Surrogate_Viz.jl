@@ -6,14 +6,15 @@
 using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
 
-using Surrogate_Viz
+include(joinpath(@__DIR__, "..", "src", "Surrogate_Viz.jl"))
+using .Surrogate_Viz: IMPORT_ROOT, pairwise_summary
 using CSV
 using DataFrames
 import Dates
 
 function _heatmap_latent_path(
     model_family, telemetry_source, heartbeat_enabled;
-    import_root::AbstractString = Surrogate_Viz.IMPORT_ROOT,
+    import_root::AbstractString = IMPORT_ROOT,
 )
     condition_label = heartbeat_enabled ? "heartbeat_on" : "heartbeat_off"
     joinpath(import_root, model_family, telemetry_source, condition_label, "latent_telemetry.csv")
@@ -28,7 +29,7 @@ end
 
 function compute_heatmap_data(
     runs_df;
-    import_root::AbstractString = Surrogate_Viz.IMPORT_ROOT,
+    import_root::AbstractString = IMPORT_ROOT,
     bucket_count::Int = 20,
 )
     heatmap_data = Dict{String,Vector{Float64}}()
@@ -66,7 +67,7 @@ function compute_heatmap_data(
 
             joined = DataFrame()
             try
-                joined, _ = Surrogate_Viz.pairwise_summary(df_off, df_on, detected_col, nothing)
+                joined, _ = pairwise_summary(df_off, df_on, detected_col, nothing)
             catch e
                 (e isa ErrorException && occursin("overlapping timestamps", e.msg)) || rethrow(e)
                 @debug "Skipping model=$(model) repeat=$(repeat_idx): no overlapping timestamps"
