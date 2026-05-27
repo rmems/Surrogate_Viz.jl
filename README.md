@@ -121,15 +121,68 @@ julia compare_saaq15_baseline_pair.jl
 This writes a compact PNG plus markdown summary under
 `outputs/olmoe-1b-7b/dashboards/`.
 
+## SAAQ Bundle Ingestion (corinth-canal)
+
+`Surrogate_Viz.jl` can ingest corinth-canal run bundles directly from
+`artifacts/<campaign>/<model>/<telemetry_source>/<condition>/<run_id>/`
+directories without needing the old `selected_runs.toml` workflow.
+
+Each bundle contains:
+
+| File | Purpose |
+|---|---|
+| `run_manifest.json` | Run identity, model, SAAQ rule, telemetry source, router policy |
+| `summary.json` | Metrics: ticks completed, latent rows, timing, repeat determinism |
+
+### Validate a single bundle
+
+```bash
+julia --project=. scripts/validate_saaq_bundle.jl /path/to/run_dir
+```
+
+Exit code 0 means the bundle is valid. Exit 1 means it has errors.
+
+### Ingest a directory tree into normalized CSV tables
+
+```bash
+julia --project=. scripts/ingest_saaq_bundles.jl <input_dir> <output_dir>
+```
+
+Walks `<input_dir>` recursively, finds all `run_manifest.json` files,
+loads each bundle, and writes three CSV files to `<output_dir>/`:
+
+- `runs_table.csv` — one row per run (identity, status, model, SAAQ rule, telemetry)
+- `metrics_table.csv` — one row per metric (run_id, name, value, category)
+- `warnings_table.csv` — one row per warning (run_id, category, message, severity)
+
+### Build a static HTML dashboard from normalized tables
+
+```bash
+julia --project=. scripts/build_saaq_dashboard.jl <normalized_dir> <report_dir>
+```
+
+Reads the CSV tables from `<normalized_dir>` and writes:
+
+```
+<report_dir>/<yyyy-mm-dd>/
+  dashboard.html    # compact HTML dashboard with tables
+  summary.md        # markdown summary with run overview table
+  runs_table.csv    # (copied)
+  metrics_table.csv # (copied)
+  warnings_table.csv # (copied)
+```
+
 ## Tests
 
 Run the test suite from the repo root:
 
 ```bash
+julia --project=. -e 'using Pkg; Pkg.instantiate()'
 julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
 Tests cover the `SurrogateViz` module's shared utilities — import paths,
-telemetry column detection, paired-run comparison mechanics, and number
-formatting — using synthetic neutral-paired-run fixtures. No simulator data
-or condition-specific behavior is required.
+telemetry column detection, paired-run comparison mechanics, bundle
+loading, normalization, and number formatting — using synthetic
+neutral-paired-run fixtures. No simulator data or condition-specific
+behavior is required.
