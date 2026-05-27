@@ -3,10 +3,8 @@
 # Read normalized CSV tables from <normalized_dir> and emit a static
 # HTML dashboard + summary.md under <report_dir>/.
 
-using Pkg
-Pkg.activate(joinpath(@__DIR__, ".."))
-
-using Surrogate_Viz
+include(joinpath(@__DIR__, "..", "src", "Surrogate_Viz.jl"))
+using .Surrogate_Viz
 using CSV
 using DataFrames
 using Dates

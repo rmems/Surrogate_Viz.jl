@@ -3,10 +3,8 @@
 # Walk a directory tree of corinth-canal run bundles, load each one,
 # and write normalized CSV tables to the output directory.
 
-using Pkg
-Pkg.activate(joinpath(@__DIR__, ".."))
-
-using Surrogate_Viz
+include(joinpath(@__DIR__, "..", "src", "Surrogate_Viz.jl"))
+using .Surrogate_Viz
 using CSV
 using DataFrames
 
@@ -32,7 +30,7 @@ function main()
     println("Ingesting bundles from: $(input_dir)")
     println("Writing output to:      $(output_dir)")
 
-    runs_df, metrics_df, warnings_df = normalize_bundles_dir(input_dir)
+    runs_df, metrics_df, warnings_df = Surrogate_Viz.normalize_bundles_dir(input_dir)
 
     runs_path = joinpath(output_dir, "runs_table.csv")
     metrics_path = joinpath(output_dir, "metrics_table.csv")

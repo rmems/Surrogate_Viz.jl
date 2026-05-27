@@ -29,8 +29,8 @@ function build_dashboard(df::DataFrame)
     default(fontfamily="Helvetica", legend=false, size=(1400, 900), dpi=180)
 
     p1 = scatter(
-        df.tick,
-        df.best_walker;
+        df[!, :tick],
+        df[!, :best_walker];
         title="SNN Routing Path Over Time",
         xlabel="Tick",
         ylabel="Best Walker Index",
@@ -44,7 +44,7 @@ function build_dashboard(df::DataFrame)
     )
 
     p2 = histogram(
-        df.best_walker;
+        df[!, :best_walker];
         title="Best Walker Firing Density",
         xlabel="Best Walker Index",
         ylabel="Count",
