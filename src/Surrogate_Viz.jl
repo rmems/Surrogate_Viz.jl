@@ -174,8 +174,8 @@ Base.@kwdef struct RunManifest
 end
 
 Base.@kwdef struct RunMetrics
-    ticks_completed::Int = 0
-    latent_rows::Int = 0
+    ticks_completed::Union{Int,Missing} = missing
+    latent_rows::Union{Int,Missing} = missing
     mean_tick_elapsed_us::Union{Float64,Missing} = missing
     first_timestamp_ms::Union{Int,Missing} = missing
     last_timestamp_ms::Union{Int,Missing} = missing
@@ -293,8 +293,8 @@ function load_saaq_bundle(path::AbstractString)::SaaqBundle
 
         raw_metrics = get(raw_summary, "metrics", Dict{String,Any}())
         metrics = RunMetrics(
-            ticks_completed = get(raw_metrics, "ticks_completed", 0),
-            latent_rows = get(raw_metrics, "latent_rows", 0),
+            ticks_completed = get(raw_metrics, "ticks_completed", missing),
+            latent_rows = get(raw_metrics, "latent_rows", missing),
             mean_tick_elapsed_us = get(raw_metrics, "mean_tick_elapsed_us", missing),
             first_timestamp_ms = get(raw_metrics, "first_timestamp_ms", missing),
             last_timestamp_ms = get(raw_metrics, "last_timestamp_ms", missing),

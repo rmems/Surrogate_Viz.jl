@@ -86,12 +86,16 @@ function normalize_bundle_to_tables(bundle::_saaq_bundle_type)::Tuple{DataFrame,
         ))
     end
 
-    push!(metrics_rows, Dict{String,Any}(
-        "run_id" => m.run_id, "metric_name" => "ticks_completed",
-        "metric_value" => metrics_row.ticks_completed, "metric_category" => "runtime"))
-    push!(metrics_rows, Dict{String,Any}(
-        "run_id" => m.run_id, "metric_name" => "latent_rows",
-        "metric_value" => metrics_row.latent_rows, "metric_category" => "runtime"))
+    if !ismissing(metrics_row.ticks_completed)
+        push!(metrics_rows, Dict{String,Any}(
+            "run_id" => m.run_id, "metric_name" => "ticks_completed",
+            "metric_value" => metrics_row.ticks_completed, "metric_category" => "runtime"))
+    end
+    if !ismissing(metrics_row.latent_rows)
+        push!(metrics_rows, Dict{String,Any}(
+            "run_id" => m.run_id, "metric_name" => "latent_rows",
+            "metric_value" => metrics_row.latent_rows, "metric_category" => "runtime"))
+    end
     if !ismissing(metrics_row.mean_tick_elapsed_us)
         push!(metrics_rows, Dict{String,Any}(
             "run_id" => m.run_id, "metric_name" => "mean_tick_elapsed_us",
@@ -137,6 +141,7 @@ function normalize_bundles_dir(input_dir::AbstractString)::Tuple{DataFrame, Data
     runs_dfs = DataFrame[]
     metrics_dfs = DataFrame[]
     warnings_dfs = DataFrame[]
+    bundle_seq = 0
 
     if !isdir(input_dir)
         error("Input directory not found: $(input_dir)")
@@ -148,6 +153,10 @@ function normalize_bundles_dir(input_dir::AbstractString)::Tuple{DataFrame, Data
             try
                 bundle = _load_saaq_bundle(bundle_path)
                 runs_df, metrics_df, warnings_df = normalize_bundle_to_tables(bundle)
+                bundle_seq += 1
+                runs_df._bundle_seq = fill(bundle_seq, nrow(runs_df))
+                metrics_df._bundle_seq = fill(bundle_seq, nrow(metrics_df))
+                warnings_df._bundle_seq = fill(bundle_seq, nrow(warnings_df))
                 push!(runs_dfs, runs_df)
                 push!(metrics_dfs, metrics_df)
                 push!(warnings_dfs, warnings_df)
@@ -171,10 +180,19 @@ function normalize_bundles_dir(input_dir::AbstractString)::Tuple{DataFrame, Data
     # Deduplicate: keep last occurrence per run_id
     all_runs = combine(groupby(all_runs, :run_id), last)
     
-    # Filter metrics/warnings to only run_ids that survived deduplication
-    kept_run_ids = Set(all_runs.run_id)
-    all_metrics = all_metrics[in.(all_metrics.run_id, Ref(kept_run_ids)), :]
-    all_warnings = all_warnings[in.(all_warnings.run_id, Ref(kept_run_ids)), :]
+    # Filter metrics/warnings to only rows from the last-loaded bundle per run_id
+    last_bundle_seq = Dict{String, Int}()
+    for row in eachrow(all_runs)
+        last_bundle_seq[row.run_id] = row._bundle_seq
+    end
+    
+    all_metrics = all_metrics[map(row -> last_bundle_seq[row.run_id] == row._bundle_seq, eachrow(all_metrics)), :]
+    all_warnings = all_warnings[map(row -> last_bundle_seq[row.run_id] == row._bundle_seq, eachrow(all_warnings)), :]
+    
+    # Drop the temporary _bundle_seq column
+    select!(all_runs, Not(:_bundle_seq))
+    select!(all_metrics, Not(:_bundle_seq))
+    select!(all_warnings, Not(:_bundle_seq))
 
     return all_runs, all_metrics, all_warnings
 end
