@@ -241,7 +241,7 @@ function load_saaq_bundle(path::AbstractString)::SaaqBundle
 
     extra_manifest = Dict{String,Any}()
     for (k, v) in raw_manifest
-        k in KNOWN_MANIFEST_FIELDS || (extra_manifest[k] = v)
+        Symbol(k) in KNOWN_MANIFEST_FIELDS || (extra_manifest[k] = v)
     end
 
     validation_status = get(raw_manifest, "validation_status", "unknown")
@@ -284,7 +284,7 @@ function load_saaq_bundle(path::AbstractString)::SaaqBundle
         extra_metrics = Dict{String,Any}()
         metrics_inner = get(raw_summary, "metrics", raw_summary)
         for (k, v) in metrics_inner
-            k in KNOWN_METRICS_FIELDS || (extra_metrics[k] = v)
+            Symbol(k) in KNOWN_METRICS_FIELDS || (extra_metrics[k] = v)
         end
 
         raw_metrics = get(raw_summary, "metrics", Dict{String,Any}())

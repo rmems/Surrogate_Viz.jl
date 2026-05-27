@@ -47,7 +47,9 @@ runs_df, metrics_df, warnings_df = normalize_bundles_dir(input_dir)
     println("✓ Ingested $(nrow(runs_df)) runs")
     println("  runs_table.csv:     $(runs_path)")
     println("  metrics_table.csv:  $(metrics_path)")
-    println("  warnings_table.csv: $(warnings_path)")
+    if nrow(warnings_df) > 0
+        println("  warnings_table.csv: $(warnings_path)")
+    end
 end
 
 main()

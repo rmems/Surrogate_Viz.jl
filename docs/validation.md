@@ -55,7 +55,7 @@ julia --project=. -e 'using Pkg; Pkg.test()'
 
 | Fixture | Run Status | Coverage |
 |---|---|---|
-| `successful_synthetic/` | `real` | Complete manifest + summary, heartbeat on |
+| `successful_synthetic/` | `synthetic` | Complete manifest + summary, heartbeat on |
 | `skipped_run/` | `skipped` | Missing metrics (ticks_completed=0) |
 | `failed_run/` | `failed` | error field set, validation_status=failed |
 | `missing_optional/` | `real` | Many optional manifest fields absent |
@@ -65,7 +65,7 @@ julia --project=. -e 'using Pkg; Pkg.test()'
 
 - **Real runs**: runs where `validation_status = "completed"` and `error = null`
 - **Synthetic runs**: fixture/test runs marked `run_status = synthetic` in the manifest
-  (currently `successful_synthetic` is marked real since it has completed status)
+  (currently `successful_synthetic` is marked synthetic since it has validation_status=synthetic)
 - **Skipped runs**: `validation_status = "skipped"` — incomplete runs, no metrics
 - **Failed runs**: `validation_status = "failed"` or `error !== null` — runs that errored
 
