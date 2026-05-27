@@ -5,8 +5,8 @@ using CSV
 using DataFrames
 import Dates
 import TOML
-using Surrogate_Viz
-const SV = Surrogate_Viz
+include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
+const SV = Main.Surrogate_Viz
 
 ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")

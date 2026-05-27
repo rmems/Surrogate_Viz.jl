@@ -6,8 +6,8 @@
 using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
 
-using Surrogate_Viz
-const SV = Surrogate_Viz
+include(joinpath(@__DIR__, "..", "src", "Surrogate_Viz.jl"))
+const SV = Main.Surrogate_Viz
 using CSV
 using DataFrames
 import Dates
@@ -48,25 +48,25 @@ function compute_heatmap_data(
             on_df_raw  = filter(:heartbeat_enabled => ==(true),  repeat_df)
             (isempty(off_df_raw) || isempty(on_df_raw)) && continue
 
-            path_col = hasproperty(real_df, :model_slug) ? :model_slug : :model_family
-            tel_col   = hasproperty(real_df, :telemetry_source) ? :telemetry_source : :telemetry_source
+            has_slug = hasproperty(real_df, :model_slug)
+            tel_col   = :telemetry_source
 
-            path_off = _heatmap_latent_path(
-                off_df_raw[1, path_col], off_df_raw[1, tel_col], false, off_df_raw[1, :run_id]; import_root)
-            path_on  = _heatmap_latent_path(
-                on_df_raw[1, path_col],  on_df_raw[1, tel_col],  true,  on_df_raw[1, :run_id];  import_root)
+            slug_off = has_slug && !isempty(off_df_raw[1, :model_slug]) ? off_df_raw[1, :model_slug] : off_df_raw[1, :model_family]
+            slug_on  = has_slug && !isempty(on_df_raw[1, :model_slug])  ? on_df_raw[1, :model_slug]  : on_df_raw[1, :model_family]
+
+            path_off = _heatmap_latent_path(slug_off, off_df_raw[1, tel_col], false, off_df_raw[1, :run_id]; import_root)
+            path_on  = _heatmap_latent_path(slug_on,  on_df_raw[1, tel_col],  true,  on_df_raw[1, :run_id];  import_root)
             (isfile(path_off) && isfile(path_on)) || continue
 
             df_off = CSV.read(path_off, DataFrame)
             df_on  = CSV.read(path_on,  DataFrame)
 
-            frames = [df_off, df_on]
-            common = intersect((Set(String.(names(df))) for df in frames)...)
-            detected_col_name = "saaq_delta_q_v15_target"
-            if !(detected_col_name in common)
-                continue
+            detected_col = try
+                SV.detect_delta_column([df_off, df_on])
+            catch
+                nothing
             end
-            detected_col = Symbol(detected_col_name)
+            detected_col === nothing && continue
 
             joined = DataFrame()
             try
