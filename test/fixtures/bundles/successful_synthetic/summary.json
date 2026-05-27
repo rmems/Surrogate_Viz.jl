@@ -1,0 +1,23 @@
+{
+  "run_id": "test_synthetic_20260528T120000",
+  "run_tag": "synthetic_smoke_test",
+  "model_slug": "test-llama-3.2-1b",
+  "model_family": "Llama3.2",
+  "telemetry_source": "csv_re4_path_tracing_telemetry",
+  "repeat_idx": 0,
+  "repeat_count": 1,
+  "saaq_rule": "SaaqV1_5SqrtRate",
+  "validation_status": "completed",
+  "run_dir": "artifacts/issue-40-local/test-llama-3.2-1b/csv_re4_path_tracing_telemetry/heartbeat_on/test_synthetic_20260528T120000",
+  "manifest_path": "artifacts/issue-40-local/test-llama-3.2-1b/csv_re4_path_tracing_telemetry/heartbeat_on/test_synthetic_20260528T120000/run_manifest.json",
+  "tick_telemetry_path": "artifacts/issue-40-local/test-llama-3.2-1b/csv_re4_path_tracing_telemetry/heartbeat_on/test_synthetic_20260528T120000/tick_telemetry.txt",
+  "latent_telemetry_path": "artifacts/issue-40-local/test-llama-3.2-1b/csv_re4_path_tracing_telemetry/heartbeat_on/test_synthetic_20260528T120000/latent_telemetry.csv",
+  "metrics": {
+    "ticks_completed": 512,
+    "latent_rows": 512,
+    "mean_tick_elapsed_us": 312.5,
+    "first_timestamp_ms": 1,
+    "last_timestamp_ms": 512,
+    "repeat_determinism": "matched"
+  }
+}

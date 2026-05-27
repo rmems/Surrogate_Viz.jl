@@ -1,9 +1,10 @@
 # SurrogateViz — shared utilities for SAAQ comparison scripts
 
-module SurrogateViz
+module Surrogate_Viz
 
 using CSV
 using DataFrames
+using JSON
 using Statistics
 
 const IMPORT_ROOT = normpath(joinpath(@__DIR__, "..", "data", "corinth_runs"))
@@ -79,8 +80,8 @@ function summarise_run(df::DataFrame, run::Dict{String,<:Any}, delta_col::Symbol
         "run_id" => run["id"],
         "condition" => run["condition"],
         "rows" => nrow(df),
-        "first_ms" => to_int_ms(first(df.timestamp_ms)),
-        "last_ms" => to_int_ms(last(df.timestamp_ms)),
+        "first_ms" => to_int_ms(first(df[!, :timestamp_ms])),
+        "last_ms" => to_int_ms(last(df[!, :timestamp_ms])),
         "mean_delta" => Statistics.mean(delta_values),
         "max_delta" => maximum(delta_values),
         "final_delta" => last(delta_values),
@@ -138,13 +139,329 @@ end
 fmt(x::Missing) = "-"
 function fmt(x::Real)
     rounded = round(Float64(x); digits = 6)
-    rounded == 0.0 && (rounded = 0.0)  # normalize -0.0 -> 0.0
+    rounded == 0.0 && (rounded = 0.0)
     return string(rounded)
 end
 fmt(x) = string(x)
 
+@enum RunStatus real synthetic skipped failed
+
+Base.@kwdef struct RunManifest
+    run_id::String
+    run_status::RunStatus = real
+    model_family::String
+    model_slug::String = ""
+    model_descriptor::String = ""
+    architecture::String = ""
+    checkpoint_format::String = ""
+    prompt_profile::String = ""
+    saaq_rule::String = ""
+    saaq_dual_emit::Bool = false
+    telemetry_source::String = ""
+    routing_mode::String = ""
+    heartbeat_enabled::Bool = false
+    heartbeat_amplitude::Float64 = 0.0
+    heartbeat_period_ticks::Int = 0
+    heartbeat_duty_cycle::Float64 = 0.0
+    run_tag::String = ""
+    repeat_idx::Int = 0
+    repeat_count::Int = 1
+    validation_status::String = "unknown"
+    error::Union{Nothing,String} = nothing
+    ticks::Int = 0
+    ticks_effective::Int = 0
+    extra::Dict{String,Any} = Dict{String,Any}()
+end
+
+Base.@kwdef struct RunMetrics
+    ticks_completed::Int = 0
+    latent_rows::Int = 0
+    mean_tick_elapsed_us::Union{Float64,Missing} = missing
+    first_timestamp_ms::Union{Int,Missing} = missing
+    last_timestamp_ms::Union{Int,Missing} = missing
+    repeat_determinism::Union{String,Missing} = missing
+    extra::Dict{String,Any} = Dict{String,Any}()
+end
+
+Base.@kwdef struct RunWarning
+    category::String = ""
+    message::String = ""
+    tensor_name::Union{String,Nothing} = nothing
+end
+
+Base.@kwdef struct SaaqBundle
+    manifest::RunManifest
+    metrics::RunMetrics
+    warnings::Vector{RunWarning} = RunWarning[]
+end
+
+KNOWN_MANIFEST_FIELDS = [
+    :run_id, :model_slug, :model_family, :architecture, :checkpoint_path,
+    :routing_tensor_name, :synapse_source, :checkpoint_format, :prompt_embedding_source,
+    :prompt_profile, :prompt_text, :ticks, :saaq_rule, :saaq_primary_rule,
+    :saaq_dual_emit, :validation_status, :error, :heartbeat_enabled,
+    :heartbeat_amplitude, :heartbeat_period_ticks, :heartbeat_duty_cycle,
+    :heartbeat_phase_offset_ticks, :telemetry_source, :telemetry_csv_path,
+    :telemetry_row_count, :wraparound_enabled, :wraparound_loops,
+    :ticks_effective, :run_dir, :output_root, :repeat_idx,
+    :repeat_count, :cwd_routing_csv_contaminated, :run_tag, :routing_mode,
+    :generated_files, :created_at, :repo, :commit_sha,
+]
+
+KNOWN_METRICS_FIELDS = [
+    :ticks_completed, :latent_rows, :mean_tick_elapsed_us,
+    :first_timestamp_ms, :last_timestamp_ms, :repeat_determinism,
+]
+
+function _status_from_validation(v::String, error::Union{Nothing,String})
+    if v ∈ ("completed", "success")
+        return real
+    elseif v ∈ ("synthetic",)
+        return synthetic
+    elseif v ∈ ("skipped", "skip")
+        return skipped
+    elseif v ∈ ("failed", "error", "crash")
+        return failed
+    elseif error !== nothing && !isempty(error)
+        return failed
+    else
+        return real
+    end
+end
+
+function load_saaq_bundle(path::AbstractString)::SaaqBundle
+    manifest_path = joinpath(path, "run_manifest.json")
+    summary_path = joinpath(path, "summary.json")
+
+    if !isfile(manifest_path)
+        error("Bundle validation failed: run_manifest.json not found at $(manifest_path)")
+    end
+
+    raw_manifest = JSON.parsefile(manifest_path)
+
+    extra_manifest = Dict{String,Any}()
+    for (k, v) in raw_manifest
+        k in KNOWN_MANIFEST_FIELDS || (extra_manifest[k] = v)
+    end
+
+    validation_status = get(raw_manifest, "validation_status", "unknown")
+    run_error = get(raw_manifest, "error", nothing)
+    run_status = _status_from_validation(validation_status, run_error)
+
+    manifest = RunManifest(
+        run_id = get(raw_manifest, "run_id", ""),
+        run_status = run_status,
+        model_family = get(raw_manifest, "model_family", ""),
+        model_slug = get(raw_manifest, "model_slug", ""),
+        model_descriptor = get(raw_manifest, "checkpoint_path", ""),
+        architecture = get(raw_manifest, "architecture", ""),
+        checkpoint_format = get(raw_manifest, "checkpoint_format", ""),
+        prompt_profile = get(raw_manifest, "prompt_profile", ""),
+        saaq_rule = get(raw_manifest, "saaq_rule", ""),
+        saaq_dual_emit = get(raw_manifest, "saaq_dual_emit", false),
+        telemetry_source = get(raw_manifest, "telemetry_source", ""),
+        routing_mode = get(raw_manifest, "routing_mode", ""),
+        heartbeat_enabled = get(raw_manifest, "heartbeat_enabled", false),
+        heartbeat_amplitude = get(raw_manifest, "heartbeat_amplitude", 0.0),
+        heartbeat_period_ticks = get(raw_manifest, "heartbeat_period_ticks", 0),
+        heartbeat_duty_cycle = get(raw_manifest, "heartbeat_duty_cycle", 0.0),
+        run_tag = get(raw_manifest, "run_tag", ""),
+        repeat_idx = get(raw_manifest, "repeat_idx", 0),
+        repeat_count = get(raw_manifest, "repeat_count", 1),
+        validation_status = validation_status,
+        error = run_error,
+        ticks = get(raw_manifest, "ticks", 0),
+        ticks_effective = get(raw_manifest, "ticks_effective", 0),
+        extra = extra_manifest,
+    )
+
+    metrics = RunMetrics()
+    warnings = RunWarning[]
+
+    if isfile(summary_path)
+        raw_summary = JSON.parsefile(summary_path)
+
+        extra_metrics = Dict{String,Any}()
+        metrics_inner = get(raw_summary, "metrics", raw_summary)
+        for (k, v) in metrics_inner
+            k in KNOWN_METRICS_FIELDS || (extra_metrics[k] = v)
+        end
+
+        raw_metrics = get(raw_summary, "metrics", Dict{String,Any}())
+        metrics = RunMetrics(
+            ticks_completed = get(raw_metrics, "ticks_completed", 0),
+            latent_rows = get(raw_metrics, "latent_rows", 0),
+            mean_tick_elapsed_us = get(raw_metrics, "mean_tick_elapsed_us", missing),
+            first_timestamp_ms = get(raw_metrics, "first_timestamp_ms", missing),
+            last_timestamp_ms = get(raw_metrics, "last_timestamp_ms", missing),
+            repeat_determinism = get(raw_metrics, "repeat_determinism", missing),
+            extra = extra_metrics,
+        )
+    end
+
+    return SaaqBundle(manifest, metrics, warnings)
+end
+
+function validate_saaq_bundle(path::AbstractString)::Tuple{Bool, Vector{String}}
+    errors = String[]
+    manifest_path = joinpath(path, "run_manifest.json")
+    if !isfile(manifest_path)
+        push!(errors, "run_manifest.json not found at $(manifest_path)")
+        return false, errors
+    end
+    try
+        raw = JSON.parsefile(manifest_path)
+        if !haskey(raw, "run_id")
+            push!(errors, "run_manifest.json missing required field: run_id")
+        end
+        if !haskey(raw, "run_dir")
+            push!(errors, "run_manifest.json missing required field: run_dir")
+        end
+    catch e
+        push!(errors, "run_manifest.json is not valid JSON: $(e)")
+    end
+    return isempty(errors), errors
+end
+
+function _nothing_to_missing(v::Union{Nothing,T}) where T
+    v === nothing ? missing : v
+end
+
+function normalize_bundle_to_tables(bundle::SaaqBundle)::Tuple{DataFrame, DataFrame, DataFrame}
+    m = bundle.manifest
+    metrics_row = bundle.metrics
+
+    run_status_str = string(m.run_status)
+
+    runs_row = Dict{String,Any}(
+        "run_id" => m.run_id,
+        "run_status" => run_status_str,
+        "model_family" => m.model_family,
+        "model_slug" => m.model_slug,
+        "model_descriptor" => _nothing_to_missing(m.model_descriptor),
+        "architecture" => m.architecture,
+        "checkpoint_format" => m.checkpoint_format,
+        "prompt_profile" => m.prompt_profile,
+        "saaq_formula_version" => m.saaq_rule,
+        "saaq_dual_emit" => m.saaq_dual_emit,
+        "telemetry_source" => m.telemetry_source,
+        "routing_mode" => m.routing_mode,
+        "heartbeat_enabled" => m.heartbeat_enabled,
+        "heartbeat_amplitude" => m.heartbeat_amplitude,
+        "heartbeat_period_ticks" => m.heartbeat_period_ticks,
+        "heartbeat_duty_cycle" => m.heartbeat_duty_cycle,
+        "run_tag" => m.run_tag,
+        "repeat_idx" => m.repeat_idx,
+        "repeat_count" => m.repeat_count,
+        "validation_status" => m.validation_status,
+        "error" => _nothing_to_missing(m.error),
+        "ticks" => m.ticks,
+        "ticks_effective" => m.ticks_effective,
+    )
+
+    if !isempty(m.extra)
+        for (k, v) in m.extra
+            clean_v = v === nothing ? missing :
+                      v isa AbstractArray ? Any[vi === nothing ? missing : vi for vi in v] :
+                      v
+            runs_row["extra_$(k)"] = clean_v
+        end
+    end
+
+    runs_df = DataFrame([runs_row])
+
+    metrics_rows = Dict{String,Any}[]
+    for (k, v) in metrics_row.extra
+        push!(metrics_rows, Dict{String,Any}(
+            "run_id" => m.run_id,
+            "metric_name" => k,
+            "metric_value" => v,
+            "metric_category" => "extra",
+        ))
+    end
+
+    if metrics_row.ticks_completed > 0
+        push!(metrics_rows, Dict{String,Any}(
+            "run_id" => m.run_id, "metric_name" => "ticks_completed",
+            "metric_value" => metrics_row.ticks_completed, "metric_category" => "runtime"))
+    end
+    if metrics_row.latent_rows > 0
+        push!(metrics_rows, Dict{String,Any}(
+            "run_id" => m.run_id, "metric_name" => "latent_rows",
+            "metric_value" => metrics_row.latent_rows, "metric_category" => "runtime"))
+    end
+    if !ismissing(metrics_row.mean_tick_elapsed_us)
+        push!(metrics_rows, Dict{String,Any}(
+            "run_id" => m.run_id, "metric_name" => "mean_tick_elapsed_us",
+            "metric_value" => metrics_row.mean_tick_elapsed_us, "metric_category" => "runtime"))
+    end
+    if !ismissing(metrics_row.first_timestamp_ms)
+        push!(metrics_rows, Dict{String,Any}(
+            "run_id" => m.run_id, "metric_name" => "first_timestamp_ms",
+            "metric_value" => metrics_row.first_timestamp_ms, "metric_category" => "runtime"))
+    end
+    if !ismissing(metrics_row.last_timestamp_ms)
+        push!(metrics_rows, Dict{String,Any}(
+            "run_id" => m.run_id, "metric_name" => "last_timestamp_ms",
+            "metric_value" => metrics_row.last_timestamp_ms, "metric_category" => "runtime"))
+    end
+    if !ismissing(metrics_row.repeat_determinism)
+        push!(metrics_rows, Dict{String,Any}(
+            "run_id" => m.run_id, "metric_name" => "repeat_determinism",
+            "metric_value" => metrics_row.repeat_determinism, "metric_category" => "quality"))
+    end
+
+    metrics_df = DataFrame(metrics_rows)
+
+    warnings_rows = Dict{String,Any}[
+        Dict{String,Any}("run_id" => m.run_id, "warning_category" => w.category,
+         "warning_message" => w.message, "tensor_name" => _nothing_to_missing(w.tensor_name), "severity" => "info")
+        for w in bundle.warnings
+    ]
+    warnings_df = DataFrame(warnings_rows)
+
+    return runs_df, metrics_df, warnings_df
+end
+
+function normalize_bundles_dir(input_dir::AbstractString)::Tuple{DataFrame, DataFrame, DataFrame}
+    all_runs = DataFrame()
+    all_metrics = DataFrame()
+    all_warnings = DataFrame()
+
+    if !isdir(input_dir)
+        error("Input directory not found: $(input_dir)")
+    end
+
+    for (root, dirs, files) in walkdir(input_dir)
+        if "run_manifest.json" in files
+            bundle_path = root
+            try
+                bundle = load_saaq_bundle(bundle_path)
+                runs_df, metrics_df, warnings_df = normalize_bundle_to_tables(bundle)
+                all_runs = vcat(all_runs, runs_df, cols=:union)
+                all_metrics = vcat(all_metrics, metrics_df, cols=:union)
+                all_warnings = vcat(all_warnings, warnings_df, cols=:union)
+            catch e
+                @warn "Failed to load bundle at $(bundle_path): $(e)"
+            end
+        end
+    end
+
+    if nrow(all_runs) == 0
+        all_runs = DataFrame(run_id=String[], run_status=String[])
+        all_metrics = DataFrame(run_id=String[], metric_name=String[], metric_value=Any[], metric_category=String[])
+        all_warnings = DataFrame(run_id=String[], warning_category=String[], warning_message=String[], tensor_name=Union{String,Nothing}[], severity=String[])
+    end
+
+    return all_runs, all_metrics, all_warnings
+end
+
 export imported_latent_path, load_latent_df, detect_delta_column, maybe_entropy_column
 export to_float64_vec, to_int_ms, summarise_run, pairwise_summary, fmt
 export validate_path_component, IMPORT_ROOT
+export RunStatus, RunManifest, RunMetrics, RunWarning, SaaqBundle
+export real, synthetic, skipped, failed
+export load_saaq_bundle, validate_saaq_bundle
+export normalize_bundle_to_tables, normalize_bundles_dir
 
-end # module SurrogateViz
+end # module Surrogate_Viz

@@ -1,0 +1,47 @@
+#!/usr/bin/env julia
+# validate_saaq_bundle.jl
+# Validate a single corinth-canal run bundle.
+# Exit code 0 = valid, non-zero = invalid.
+
+include(joinpath(@__DIR__, "..", "src", "Surrogate_Viz.jl"))
+using .Surrogate_Viz
+
+function main()
+    if length(ARGS) < 1
+        println(stderr, "Usage: julia --project=. scripts/validate_saaq_bundle.jl <run_dir>")
+        exit(1)
+    end
+
+    bundle_dir = ARGS[1]
+
+    if !isdir(bundle_dir)
+        println(stderr, "Error: directory not found: $(bundle_dir)")
+        exit(1)
+    end
+
+    is_valid, errors = Surrogate_Viz.validate_saaq_bundle(bundle_dir)
+
+    if is_valid
+        println("✓ Bundle validation passed: $(bundle_dir)")
+        try
+            bundle = Surrogate_Viz.load_saaq_bundle(bundle_dir)
+            println("  run_id:       $(bundle.manifest.run_id)")
+            println("  run_status:  $(bundle.manifest.run_status)")
+            println("  model_family: $(bundle.manifest.model_family)")
+            println("  saaq_rule:    $(bundle.manifest.saaq_rule)")
+            println("  telemetry:    $(bundle.manifest.telemetry_source)")
+            println("  ticks_effective: $(bundle.manifest.ticks_effective)")
+        catch e
+            println(stderr, "Warning: bundle loaded but had issues: $(e)")
+        end
+        exit(0)
+    else
+        println(stderr, "✗ Bundle validation FAILED: $(bundle_dir)")
+        for err in errors
+            println(stderr, "  - $(err)")
+        end
+        exit(1)
+    end
+end
+
+main()
