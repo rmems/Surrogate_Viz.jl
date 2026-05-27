@@ -1,7 +1,7 @@
 using CSV
 using DataFrames
-using Dates
-using Random
+import Dates
+import Random
 
 ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")

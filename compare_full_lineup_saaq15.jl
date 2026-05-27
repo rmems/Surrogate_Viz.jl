@@ -1,10 +1,11 @@
+using Pkg
+Pkg.activate(@__DIR__)
+
 using CSV
 using DataFrames
-using Dates
-using TOML
-
-include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
-using .Surrogate_Viz
+import Dates
+import TOML
+using Surrogate_Viz
 
 ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")
@@ -254,7 +255,7 @@ function write_report(results::Vector{ModelResult})
     push!(lines, "- Telemetry source: `$(TELEMETRY_SOURCE)`")
     push!(lines, "- Rule: `$(RULE)`")
     push!(lines, "- Models: $(length(results)) ($(join((r.slug for r in results), ", ")))")
-    push!(lines, "- Generated: `$(Dates.format(now(), "yyyy-mm-ddTHH:MM:SS"))`")
+    push!(lines, "- Generated: `$(Dates.format(Dates.now(), "yyyy-mm-ddTHH:MM:SS"))`")
     push!(lines, "")
 
     for r in results

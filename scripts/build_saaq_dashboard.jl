@@ -9,7 +9,7 @@ Pkg.activate(joinpath(@__DIR__, ".."))
 using Surrogate_Viz
 using CSV
 using DataFrames
-using Dates
+import Dates
 
 function _heatmap_latent_path(
     model_family, telemetry_source, heartbeat_enabled;
@@ -64,11 +64,12 @@ function compute_heatmap_data(
             end
             detected_col = Symbol(detected_col_name)
 
+            joined = DataFrame()
             try
-                joined, _ = pairwise_summary(df_off, df_on, detected_col, nothing)
+                joined, _ = Surrogate_Viz.pairwise_summary(df_off, df_on, detected_col, nothing)
             catch e
                 (e isa ErrorException && occursin("overlapping timestamps", e.msg)) || rethrow(e)
-                @debug "Skipping model=$(model) repeat=$(repeat_idx): no overlapping timestamps" continue
+                @debug "Skipping model=$(model) repeat=$(repeat_idx): no overlapping timestamps"
                 continue
             end
             nrow(joined) == 0 && continue
@@ -376,12 +377,13 @@ function main()
     metrics_df = isfile(metrics_path) ? CSV.read(metrics_path, DataFrame) : DataFrame(run_id=String[], metric_name=String[], metric_value=Any[], metric_category=String[])
     warnings_df = isfile(warnings_path) ? CSV.read(warnings_path, DataFrame) : DataFrame(run_id=String[], warning_category=String[], warning_message=String[], tensor_name=Union{String,Nothing}[], severity=String[])
 
-    date_label = Dates.format(today(), "yyyy-mm-dd")
+    date_label = Dates.format(Dates.today(), "yyyy-mm-dd")
     out_dir = joinpath(report_dir, date_label)
     mkpath(out_dir)
 
-heatmap_data = compute_heatmap_data(runs_df)
-    dashboard_html = build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heatmap_data) = build_summary_md(runs_df, metrics_df, warnings_df; date_label)
+    heatmap_data = compute_heatmap_data(runs_df)
+    dashboard_html = build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heatmap_data)
+    summary_md = build_summary_md(runs_df, metrics_df, warnings_df; date_label)
 
     dashboard_path = joinpath(out_dir, "dashboard.html")
     summary_path = joinpath(out_dir, "summary.md")

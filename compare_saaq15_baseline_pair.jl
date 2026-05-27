@@ -1,9 +1,10 @@
+using Pkg
+Pkg.activate(@__DIR__)
+
 using CSV
 using DataFrames
-using TOML
-
-include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
-using .Surrogate_Viz
+import TOML
+using Surrogate_Viz
 
 ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")

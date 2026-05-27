@@ -1,6 +1,6 @@
 using CSV
 using DataFrames
-using TOML
+import TOML
 
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")
