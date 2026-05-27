@@ -1,9 +1,11 @@
-using Pkg
-Pkg.activate(@__DIR__)
+const PkgMod = let pkgid = Base.PkgId(Base.UUID("44cfe95a-1eb2-52ea-b672-e2afdf69b78f"), "Pkg")
+    Base.require(pkgid)
+    getfield(Main, :Pkg)
+end
+PkgMod.activate(@__DIR__)
 
 using CSV
 using DataFrames
-import TOML
 include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
 const SV = getfield(Main, :Surrogate_Viz)
 
@@ -25,7 +27,7 @@ function selected_repeat_idx()
 end
 
 function load_selected_runs(path::AbstractString)
-    manifest = TOML.parsefile(path)
+    manifest = Base.TOML.parsefile(path)
     runs = get(manifest, "runs", nothing)
     runs isa Vector || error("Expected [[runs]] entries in $(path)")
     return runs

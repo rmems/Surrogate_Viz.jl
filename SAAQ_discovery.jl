@@ -1,5 +1,8 @@
-using Pkg
-Pkg.activate(@__DIR__)
+const PkgMod = let pkgid = Base.PkgId(Base.UUID("44cfe95a-1eb2-52ea-b672-e2afdf69b78f"), "Pkg")
+    Base.require(pkgid)
+    getfield(Main, :Pkg)
+end
+PkgMod.activate(@__DIR__)
 
 using SymbolicRegression
 using CSV

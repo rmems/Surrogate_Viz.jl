@@ -1,10 +1,15 @@
-using Pkg
-Pkg.activate(@__DIR__)
+const PkgMod = let pkgid = Base.PkgId(Base.UUID("44cfe95a-1eb2-52ea-b672-e2afdf69b78f"), "Pkg")
+    Base.require(pkgid)
+    getfield(Main, :Pkg)
+end
+PkgMod.activate(@__DIR__)
 
 using CSV
 using DataFrames
-import Dates
-import TOML
+const DatesMod = let pkgid = Base.PkgId(Base.UUID("ade2ca70-3891-5945-98fb-dc099432e06a"), "Dates")
+    Base.require(pkgid)
+    getfield(Main, :Dates)
+end
 include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
 const SV = getfield(Main, :Surrogate_Viz)
 
@@ -37,7 +42,7 @@ const MODEL_ORDER = [
 ]
 
 function load_selected_runs(path::AbstractString)
-    manifest = TOML.parsefile(path)
+    manifest = Base.TOML.parsefile(path)
     runs = get(manifest, "runs", nothing)
     runs isa Vector || error("Expected [[runs]] entries in $(path)")
     return runs
@@ -258,7 +263,7 @@ function write_report(results::Vector{ModelResult})
     push!(lines, "- Rule: `$(RULE)`")
     push!(lines, "- Equation source: `$(EQUATION_SOURCE)` (SymbolicRegression discovery)")
     push!(lines, "- Models: $(length(results)) ($(join((r.slug for r in results), ", ")))")
-    push!(lines, "- Generated: `$(Dates.format(Dates.now(), "yyyy-mm-ddTHH:MM:SS"))`")
+    push!(lines, "- Generated: `$(DatesMod.format(DatesMod.now(), "yyyy-mm-ddTHH:MM:SS"))`")
     push!(lines, "")
 
     for r in results
