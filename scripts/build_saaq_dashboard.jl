@@ -177,7 +177,7 @@ function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heat
     .col-ticks   { min-width: 70px; text-align: right; }
     .col-metrics { min-width: 80px; text-align: center; }
     .col-warn    { min-width: 60px; text-align: center; }
-    .heatmap-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.heatmap-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .heatmap-table th { font-size: 10px; padding: 3px 4px; text-align: center; }
     .heatmap-table td.hm-cell { width: 3%; min-width: 18px; height: 28px; border: 1px solid #fff; }
     td.hm-model { text-align: left; padding: 4px 8px; font-size: 11px; white-space: nowrap; width: 160px; }
@@ -256,7 +256,6 @@ function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heat
         run_id = string(row.run_id)
         status = string(row.run_status)
         status_class = "badge-$(status)"
-        heartbeat = row.heartbeat_enabled ? "HB-on" : "HB-off"
         hb_label = row.heartbeat_enabled ? "&nbsp;<span style='color:#6a7fe8'>♦</span>" : ""
 
         run_metrics = filter(:run_id => ==(run_id), metrics_df)
@@ -282,9 +281,7 @@ function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heat
     </div>
     </div>
     """)
-
     write(buf, build_heatmap_panel(heatmap_data))
-
     if nrow(warnings_df) > 0
         write(buf, """
         <div class="panel">
@@ -383,9 +380,8 @@ function main()
     out_dir = joinpath(report_dir, date_label)
     mkpath(out_dir)
 
-    heatmap_data = compute_heatmap_data(runs_df)
-    dashboard_html = build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heatmap_data)
-    summary_md = build_summary_md(runs_df, metrics_df, warnings_df; date_label)
+heatmap_data = compute_heatmap_data(runs_df)
+    dashboard_html = build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heatmap_data) = build_summary_md(runs_df, metrics_df, warnings_df; date_label)
 
     dashboard_path = joinpath(out_dir, "dashboard.html")
     summary_path = joinpath(out_dir, "summary.md")

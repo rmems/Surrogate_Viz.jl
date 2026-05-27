@@ -32,7 +32,7 @@ function main()
     println("Ingesting bundles from: $(input_dir)")
     println("Writing output to:      $(output_dir)")
 
-    runs_df, metrics_df, warnings_df = normalize_bundles_dir(input_dir)
+runs_df, metrics_df, warnings_df = normalize_bundles_dir(input_dir)
 
     runs_path = joinpath(output_dir, "runs_table.csv")
     metrics_path = joinpath(output_dir, "metrics_table.csv")

@@ -123,10 +123,10 @@ end
 function build_dashboard(latent_df::DataFrame, tick_df::DataFrame)
     default(fontfamily = "Helvetica", legend = :topright, lw = 2, size = (1500, 1200), dpi = 180)
 
-    rate_overlay = scaled_overlay(latent_df.condition_signal, latent_df.avg_pop_firing_rate_hz)
-    entropy_overlay = scaled_overlay(latent_df.condition_signal, latent_df.routing_entropy)
-    walker_overlay = scaled_overlay(tick_df.condition_signal, tick_df.best_walker)
-    power_overlay = scaled_overlay(latent_df.condition_signal, latent_df.gpu_power_w)
+    rate_overlay = scaled_overlay(latent_df[!, :condition_signal], latent_df[!, :avg_pop_firing_rate_hz])
+    entropy_overlay = scaled_overlay(latent_df[!, :condition_signal], latent_df[!, :routing_entropy])
+    walker_overlay = scaled_overlay(tick_df[!, :condition_signal], tick_df[!, :best_walker])
+    power_overlay = scaled_overlay(latent_df[!, :condition_signal], latent_df[!, :gpu_power_w])
 
     p1 = plot(
         latent_df.tick,
