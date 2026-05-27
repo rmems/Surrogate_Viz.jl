@@ -6,8 +6,8 @@
 using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
 
-using Surrogate_Viz
-const SV = Surrogate_Viz
+include(joinpath(@__DIR__, "..", "src", "Surrogate_Viz.jl"))
+const SV = getfield(Main, :Surrogate_Viz)
 using CSV
 using DataFrames
 import Dates
