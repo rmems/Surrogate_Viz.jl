@@ -24,6 +24,7 @@ function _heatmap_latent_path(
 end
 
 function delta_color(v, vmax)
+    isnan(v) && return "#ffffff"
     v == 0 && return "#e0e0e0"
     t = clamp(abs(v) / vmax, 0.0, 1.0)
     l = round(Int, 65 - t * 35)
@@ -51,8 +52,8 @@ function compute_heatmap_data(
             has_slug = hasproperty(real_df, :model_slug)
             tel_col   = :telemetry_source
 
-            slug_off = has_slug && !isempty(off_df_raw[1, :model_slug]) ? off_df_raw[1, :model_slug] : off_df_raw[1, :model_family]
-            slug_on  = has_slug && !isempty(on_df_raw[1, :model_slug])  ? on_df_raw[1, :model_slug]  : on_df_raw[1, :model_family]
+            slug_off = has_slug && !ismissing(off_df_raw[1, :model_slug]) && !isempty(off_df_raw[1, :model_slug]) ? off_df_raw[1, :model_slug] : off_df_raw[1, :model_family]
+            slug_on  = has_slug && !ismissing(on_df_raw[1, :model_slug])  && !isempty(on_df_raw[1, :model_slug])  ? on_df_raw[1, :model_slug]  : on_df_raw[1, :model_family]
 
             path_off = _heatmap_latent_path(slug_off, off_df_raw[1, tel_col], false, off_df_raw[1, :run_id]; import_root)
             path_on  = _heatmap_latent_path(slug_on,  on_df_raw[1, tel_col],  true,  on_df_raw[1, :run_id];  import_root)
@@ -85,7 +86,7 @@ function compute_heatmap_data(
 
             n = length(deltas)
             nb = bucket_count
-            buckets = zeros(Float64, nb)
+            buckets = fill(NaN, nb)
             counts  = zeros(Int, nb)
             for (i, val) in enumerate(deltas)
                 b = min(nb, (i - 1) * nb ÷ n + 1)
@@ -97,7 +98,6 @@ function compute_heatmap_data(
                     buckets[b] /= counts[b]
                 end
             end
-
             key = "$(model) [r$(repeat_idx)]"
             heatmap_data[key] = buckets
         end
@@ -107,7 +107,9 @@ end
 
 function build_heatmap_panel(heatmap_data; n_buckets=20)
     isempty(heatmap_data) && return ""
-    vmax = maximum(maximum(abs, v) for v in values(heatmap_data))
+    non_nan = filter(!isnan, vcat([collect(v) for v in values(heatmap_data)]...))
+    isempty(non_nan) && return ""
+    vmax = maximum(abs, non_nan)
     vmax = max(vmax, 1e-9)
     buf = IOBuffer()
     write(buf, """<div class="panel"><div class="panel-header">Delta Heatmap — treatment − baseline</div><div class="panel-body"><table class="heatmap-table"><thead><tr><th>Model</th>""")
