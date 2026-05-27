@@ -5,9 +5,8 @@ using CSV
 using DataFrames
 import Dates
 import TOML
-include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
-using .Surrogate_Viz: imported_latent_path, load_latent_df, detect_delta_column,
-    maybe_entropy_column, summarise_run, pairwise_summary, fmt
+using Surrogate_Viz
+const SV = Surrogate_Viz
 
 ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")
@@ -168,17 +167,17 @@ function process_model(runs::AbstractVector, model_slug::AbstractString)
     off_run, on_run = model_pair(runs, model_slug)
     family = String(get(off_run, "family", ""))
 
-    off_df = load_latent_df(off_run)
-    on_df = load_latent_df(on_run)
+    off_df = SV.load_latent_df(off_run)
+    on_df = SV.load_latent_df(on_run)
 
-    delta_col = detect_delta_column([off_df, on_df])
-    entropy_col = maybe_entropy_column([off_df, on_df])
+    delta_col = SV.detect_delta_column([off_df, on_df])
+    entropy_col = SV.maybe_entropy_column([off_df, on_df])
 
     run_summaries = [
-        summarise_run(off_df, off_run, delta_col, entropy_col),
-        summarise_run(on_df, on_run, delta_col, entropy_col),
+        SV.summarise_run(off_df, off_run, delta_col, entropy_col),
+        SV.summarise_run(on_df, on_run, delta_col, entropy_col),
     ]
-    joined_df, pair_summary = pairwise_summary(off_df, on_df, delta_col, entropy_col)
+    joined_df, pair_summary = SV.pairwise_summary(off_df, on_df, delta_col, entropy_col)
 
     plot_path = joinpath(OUTPUT_DIR, "$(model_slug).png")
     fig = build_plot(model_slug, off_df, on_df, joined_df, delta_col, entropy_col)
@@ -202,8 +201,8 @@ function append_model_section!(lines::Vector{String}, result::ModelResult)
     push!(lines, "")
     push!(lines, "- control-off run: `$(result.off_run["id"])`")
     push!(lines, "- control-on  run: `$(result.on_run["id"])`")
-    push!(lines, "- imported off:    `$(relpath(imported_latent_path(result.off_run), REPO_ROOT))`")
-    push!(lines, "- imported on:     `$(relpath(imported_latent_path(result.on_run), REPO_ROOT))`")
+    push!(lines, "- imported off:    `$(relpath(SV.imported_latent_path(result.off_run), REPO_ROOT))`")
+    push!(lines, "- imported on:     `$(relpath(SV.imported_latent_path(result.on_run), REPO_ROOT))`")
     push!(lines, "- delta column:    `$(result.delta_col)`")
     push!(lines, "- routing entropy: `$(result.entropy_col === nothing ? "not present" : string(result.entropy_col))`")
     push!(lines, "")
@@ -212,7 +211,7 @@ function append_model_section!(lines::Vector{String}, result::ModelResult)
     for row in result.run_summaries
         push!(
             lines,
-            "| `$(row["condition"])` | $(row["rows"]) | $(row["first_ms"]) | $(row["last_ms"]) | $(fmt(row["mean_delta"])) | $(fmt(row["max_delta"])) | $(fmt(row["final_delta"])) | $(fmt(row["mean_entropy"])) | $(fmt(row["final_entropy"])) |",
+            "| `$(row["condition"])` | $(row["rows"]) | $(row["first_ms"]) | $(row["last_ms"]) | $(SV.fmt(row["mean_delta"])) | $(SV.fmt(row["max_delta"])) | $(SV.fmt(row["final_delta"])) | $(SV.fmt(row["mean_entropy"])) | $(SV.fmt(row["final_entropy"])) |",
         )
     end
     push!(lines, "")
@@ -221,12 +220,12 @@ function append_model_section!(lines::Vector{String}, result::ModelResult)
     push!(lines, "| Metric | Value |")
     push!(lines, "| --- | ---: |")
     push!(lines, "| Paired rows | $(result.pair_summary["paired_rows"]) |")
-    push!(lines, "| Mean delta (on - off) | $(fmt(result.pair_summary["mean_delta_on_minus_off"])) |")
-    push!(lines, "| Max abs delta (on - off) | $(fmt(result.pair_summary["max_abs_delta_on_minus_off"])) |")
-    push!(lines, "| Final delta (on - off) | $(fmt(result.pair_summary["final_delta_on_minus_off"])) |")
+    push!(lines, "| Mean delta (on - off) | $(SV.fmt(result.pair_summary["mean_delta_on_minus_off"])) |")
+    push!(lines, "| Max abs delta (on - off) | $(SV.fmt(result.pair_summary["max_abs_delta_on_minus_off"])) |")
+    push!(lines, "| Final delta (on - off) | $(SV.fmt(result.pair_summary["final_delta_on_minus_off"])) |")
     if haskey(result.pair_summary, "mean_entropy_on_minus_off")
-        push!(lines, "| Mean entropy (on - off) | $(fmt(result.pair_summary["mean_entropy_on_minus_off"])) |")
-        push!(lines, "| Final entropy (on - off) | $(fmt(result.pair_summary["final_entropy_on_minus_off"])) |")
+        push!(lines, "| Mean entropy (on - off) | $(SV.fmt(result.pair_summary["mean_entropy_on_minus_off"])) |")
+        push!(lines, "| Final entropy (on - off) | $(SV.fmt(result.pair_summary["final_entropy_on_minus_off"])) |")
     end
     push!(lines, "")
     push!(lines, "![$(result.slug)]($(basename(result.plot_path)))")
@@ -242,7 +241,7 @@ function append_cheat_sheet!(lines::Vector{String}, results::Vector{ModelResult}
         ps = r.pair_summary
         push!(
             lines,
-            "| `$(r.slug)` | `$(r.family)` | $(fmt(ps["mean_delta_on_minus_off"])) | $(fmt(ps["max_abs_delta_on_minus_off"])) | $(fmt(ps["final_delta_on_minus_off"])) |",
+            "| `$(r.slug)` | `$(r.family)` | $(SV.fmt(ps["mean_delta_on_minus_off"])) | $(SV.fmt(ps["max_abs_delta_on_minus_off"])) | $(SV.fmt(ps["final_delta_on_minus_off"])) |",
         )
     end
     push!(lines, "")

@@ -14,8 +14,8 @@ using CSV
 using DataFrames
 import TOML
 import SymbolicRegression
-include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
-using .Surrogate_Viz: imported_latent_path, validate_path_component
+using Surrogate_Viz
+const SV = Surrogate_Viz
 
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")
@@ -91,8 +91,8 @@ function build_feature_matrix(df::DataFrame, features::Vector{Symbol}, target::S
 end
 
 function sr_output_dir(run::Dict{String,<:Any})
-    model = validate_path_component("model", run["model"])
-    id = validate_path_component("id", run["id"])
+    model = SV.validate_path_component("model", run["model"])
+    id = SV.validate_path_component("id", run["id"])
     joinpath(REPO_ROOT, "outputs", model, "sr_results", id)
 end
 
@@ -165,7 +165,7 @@ function main()
 
     for run in selected
         println("\n=== Processing run $(run["id"]) ===")
-        csv_path = imported_latent_path(run)
+        csv_path = SV.imported_latent_path(run)
 
         if !isfile(csv_path)
             @warn "Skipping run $(run["id"]): latent telemetry not found at $(csv_path)"

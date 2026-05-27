@@ -6,8 +6,8 @@
 using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
 
-include(joinpath(@__DIR__, "..", "src", "Surrogate_Viz.jl"))
-using .Surrogate_Viz: validate_saaq_bundle, load_saaq_bundle
+using Surrogate_Viz
+const SV = Surrogate_Viz
 
 function main()
     if length(ARGS) < 1
@@ -22,12 +22,12 @@ function main()
         exit(1)
     end
 
-    is_valid, errors = validate_saaq_bundle(bundle_dir)
+    is_valid, errors = SV.validate_saaq_bundle(bundle_dir)
 
     if is_valid
         println("✓ Bundle validation passed: $(bundle_dir)")
         try
-            bundle = load_saaq_bundle(bundle_dir)
+            bundle = SV.load_saaq_bundle(bundle_dir)
             println("  run_id:       $(bundle.manifest.run_id)")
             println("  run_status:  $(bundle.manifest.run_status)")
             println("  model_family: $(bundle.manifest.model_family)")
