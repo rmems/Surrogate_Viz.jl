@@ -3,7 +3,7 @@ using DataFrames
 using TOML
 
 include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
-using .SurrogateViz
+using .Surrogate_Viz
 
 ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")
