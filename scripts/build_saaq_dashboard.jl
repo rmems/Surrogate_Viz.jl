@@ -17,6 +17,8 @@ function _heatmap_latent_path(
     import_root::AbstractString = SV.IMPORT_ROOT,
 )
     condition_label = heartbeat_enabled ? "heartbeat_on" : "heartbeat_off"
+    SV.validate_path_component("model_family", model_family)
+    SV.validate_path_component("telemetry_source", telemetry_source)
     SV.validate_path_component("run_id", run_id)
     joinpath(import_root, model_family, telemetry_source, condition_label, run_id, "latent_telemetry.csv")
 end
@@ -46,13 +48,13 @@ function compute_heatmap_data(
             on_df_raw  = filter(:heartbeat_enabled => ==(true),  repeat_df)
             (isempty(off_df_raw) || isempty(on_df_raw)) && continue
 
-            model_col = hasproperty(real_df, :model_family) ? :model_family : :model_slug
+            path_col = hasproperty(real_df, :model_slug) ? :model_slug : :model_family
             tel_col   = hasproperty(real_df, :telemetry_source) ? :telemetry_source : :telemetry_source
 
             path_off = _heatmap_latent_path(
-                off_df_raw[1, model_col], off_df_raw[1, tel_col], false, off_df_raw[1, :run_id]; import_root)
+                off_df_raw[1, path_col], off_df_raw[1, tel_col], false, off_df_raw[1, :run_id]; import_root)
             path_on  = _heatmap_latent_path(
-                on_df_raw[1, model_col],  on_df_raw[1, tel_col],  true,  on_df_raw[1, :run_id];  import_root)
+                on_df_raw[1, path_col],  on_df_raw[1, tel_col],  true,  on_df_raw[1, :run_id];  import_root)
             (isfile(path_off) && isfile(path_on)) || continue
 
             df_off = CSV.read(path_off, DataFrame)

@@ -25,7 +25,7 @@ models, organized by corinth-canal lineup slug:
 Models 6–9 were onboarded in [corinth-canal#68](https://github.com/rmems/corinth-canal/pull/68).
 
 Select the active model at runtime with the `MODEL` env var, e.g.
-`MODEL="qwen3-moe-i1-GGUF IQ3_M.gguf" julia plot_saaq15_validation.jl`.
+`MODEL="qwen3-moe-i1-GGUF IQ3_M.gguf" julia plot_saaq1_5_validation.jl`.
 
 > **Note on terminology:** The simulator emits a `condition_signal` column and
 > uses `baseline` / `treatment` as condition labels in the run manifest.
@@ -38,7 +38,7 @@ Select the active model at runtime with the `MODEL` env var, e.g.
 Surrogate_Viz.jl/
 ├── SAAQ_discovery.jl         # SR.jl over raw RE4 telemetry
 ├── SAAQ_latent_discovery.jl  # SR.jl over 508-neuron latent telemetry
-├── plot_saaq15_validation.jl # SAAQ 1.5 paired-run validation dashboard
+├── plot_saaq1_5_validation.jl # SAAQ 1.5 paired-run validation dashboard
 ├── plot_latent_space.jl      # Latent space exploration plot
 ├── data/                     # (gitignored, dirs kept via .gitkeep)
 │   ├── DeepSeek-Coder-V2-Lite-Instruct-Q6_K_L.gguf/
@@ -75,7 +75,7 @@ commit raw simulator CSVs from this side.
 
 ## Full Lineup Comparison
 
-`compare_full_lineup_saaq15.jl` reads `data/selected_runs.toml` for entries
+`compare_full_lineup_saaq1_5.jl` reads `data/selected_runs.toml` for entries
 tagged `campaign = "full_lineup"`, repeat-0, with telemetry source
 `csv_re4_path_tracing_telemetry` and rule `SaaqV1_5SqrtRate`. For each
 available model slug (see model table above) it pairs the control-off vs
@@ -85,8 +85,8 @@ are gracefully skipped with a warning.
 
 ```
 julia --project=. import_corinth_runs.jl
-julia --project=. compare_full_lineup_saaq15.jl
-# outputs/full_lineup/full_lineup_saaq15_comparison.md
+julia --project=. compare_full_lineup_saaq1_5.jl
+# outputs/full_lineup/full_lineup_saaq1_5_comparison.md
 # outputs/full_lineup/<model_slug>.png  (one per model)
 ```
 
@@ -115,7 +115,7 @@ After importing, compare the blessed OLMoE RE4 SAAQ 1.5 paired-run
 baseline for repeat `0` with:
 
 ```bash
-julia compare_saaq15_baseline_pair.jl
+julia compare_saaq1_5_baseline_pair.jl
 ```
 
 This writes a compact PNG plus markdown summary under
