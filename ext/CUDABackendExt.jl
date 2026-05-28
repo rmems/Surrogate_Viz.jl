@@ -19,7 +19,7 @@ function Surrogate_Viz.compute_pairwise_deltas(
     return (
         mean_delta = Float64(mean(deltas_gpu)),
         max_abs_delta = Float64(maximum(abs.(deltas_gpu))),
-        final_delta = Float64(deltas_gpu[end]),
+        final_delta = Float64(CUDA.@allowscalar deltas_gpu[end]),
     )
 end
 
@@ -35,12 +35,12 @@ function Surrogate_Viz.compute_run_stats(
     deltas_gpu = CUDA.CuArray(Float32.(delta_values))
     mean_delta = Float64(mean(deltas_gpu))
     max_delta = Float64(maximum(deltas_gpu))
-    final_delta = Float64(deltas_gpu[end])
+    final_delta = Float64(CUDA.@allowscalar deltas_gpu[end])
 
     if entropy_values !== nothing && !isempty(entropy_values)
         ent_gpu = CUDA.CuArray(Float32.(entropy_values))
         mean_entropy = Float64(mean(ent_gpu))
-        final_entropy = Float64(ent_gpu[end])
+        final_entropy = Float64(CUDA.@allowscalar ent_gpu[end])
     else
         mean_entropy = missing
         final_entropy = missing
