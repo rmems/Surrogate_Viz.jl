@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "source_tensor_count": 770,
+  "artifact_tensor_count": 770,
+  "router_count": 64,
+  "protected_router_violations": 0,
+  "protected_norm_violations": 0,
+  "expert_association_count": 8,
+  "unknown_unresolved_warning_count": 0,
+  "checksum_coverage": "770/770 source tensors",
+  "source_total_bytes": 318114914304,
+  "artifact_total_bytes": 318114914304,
+  "byte_accounting_result": "match",
+  "failures": [],
+  "warnings": []
+}

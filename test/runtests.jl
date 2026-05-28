@@ -536,3 +536,101 @@ end
         @info "CUDA not functional on this runner — skipping CUDA-specific tests"
     end
 end
+
+import .Surrogate_Viz: GrokOzempicFailure, GrokOzempicWarning, GrokOzempicReport, GrokOzempicBundle
+import .Surrogate_Viz: load_grok_ozempic_bundle, validate_grok_ozempic_bundle
+import .Surrogate_Viz: normalize_grok_ozempic_to_tables, normalize_grok_ozempic_dir, normalize_grok_ozempic_bundle_to_tables
+
+@testset "GrokOzempic — passing bundle" begin
+    fixture = joinpath(@__DIR__, "fixtures", "grok_ozempic", "pass")
+    bundle = load_grok_ozempic_bundle(fixture)
+    @test bundle.report.status == "PASS"
+    @test bundle.report.source_tensor_count == 770
+    @test bundle.report.artifact_tensor_count == 770
+    @test bundle.report.router_count == 64
+    @test bundle.report.protected_router_violations == 0
+    @test bundle.report.byte_accounting_result == "match"
+    @test isempty(bundle.report.failures)
+    @test isempty(bundle.report.warnings)
+end
+
+@testset "GrokOzempic — failing bundle with failures and warnings" begin
+    fixture = joinpath(@__DIR__, "fixtures", "grok_ozempic", "fail")
+    bundle = load_grok_ozempic_bundle(fixture)
+    @test bundle.report.status == "FAIL"
+    @test bundle.report.source_tensor_count == 770
+    @test bundle.report.artifact_tensor_count == 768
+    @test bundle.report.protected_router_violations == 2
+    @test bundle.report.byte_accounting_result == "mismatch"
+    @test length(bundle.report.failures) == 3
+    @test bundle.report.failures[1].category == "missing_tensor"
+    @test bundle.report.failures[1].tensor == "blk.0.ffn_gate_inp.weight"
+    @test bundle.report.failures[2].category == "router_policy_violation"
+    @test bundle.report.failures[3].category == "shape_mismatch"
+    @test length(bundle.report.warnings) == 2
+    @test bundle.report.warnings[1].category == "unresolved_expert_projection"
+end
+
+@testset "GrokOzempic — warnings-only bundle" begin
+    fixture = joinpath(@__DIR__, "fixtures", "grok_ozempic", "warnings_only")
+    bundle = load_grok_ozempic_bundle(fixture)
+    @test bundle.report.status == "PASS"
+    @test isempty(bundle.report.failures)
+    @test length(bundle.report.warnings) == 2
+    @test bundle.report.unknown_unresolved_warning_count == 2
+end
+
+@testset "GrokOzempic — missing optional fields" begin
+    fixture = joinpath(@__DIR__, "fixtures", "grok_ozempic", "missing_optional")
+    bundle = load_grok_ozempic_bundle(fixture)
+    @test bundle.report.status == "PASS"
+    @test bundle.report.source_tensor_count == 0
+    @test bundle.report.source_total_bytes == 0
+    @test isempty(bundle.report.failures)
+    @test isempty(bundle.report.warnings)
+    @test haskey(bundle.report.extra, "artifact_tensor_count") == false
+end
+
+@testset "GrokOzempic — validate_grok_ozempic_bundle" begin
+    valid_fixture = joinpath(@__DIR__, "fixtures", "grok_ozempic", "pass")
+    is_valid, errors = validate_grok_ozempic_bundle(valid_fixture)
+    @test is_valid
+    @test isempty(errors)
+
+    nonexistent = joinpath(@__DIR__, "fixtures", "grok_ozempic", "nonexistent")
+    is_valid2, errors2 = validate_grok_ozempic_bundle(nonexistent)
+    @test !is_valid2
+    @test length(errors2) > 0
+end
+
+@testset "GrokOzempicNormalizer — normalize_grok_ozempic_bundle_to_tables" begin
+    fixture = joinpath(@__DIR__, "fixtures", "grok_ozempic", "fail")
+    runs_df, metrics_df, issues_df = normalize_grok_ozempic_bundle_to_tables(fixture)
+
+    @test nrow(runs_df) == 1
+    @test runs_df[1, :status] == "FAIL"
+    @test runs_df[1, :source_tensor_count] == 770
+    @test runs_df[1, :protected_router_violations] == 2
+
+    @test nrow(metrics_df) == 6
+    metric_names = metrics_df.metric_name
+    @test "source_tensor_count" in metric_names
+    @test "router_count" in metric_names
+    @test "artifact_total_bytes" in metric_names
+
+    @test nrow(issues_df) == 5
+    @test sum(issues_df.severity .== "failure") == 3
+    @test sum(issues_df.severity .== "warning") == 2
+end
+
+@testset "GrokOzempicNormalizer — normalize_grok_ozempic_dir smoke" begin
+    fixture_root = joinpath(@__DIR__, "fixtures", "grok_ozempic")
+    runs_df, metrics_df, issues_df = normalize_grok_ozempic_dir(fixture_root)
+
+    @test nrow(runs_df) == 4
+    status_vals = Set(runs_df.status)
+    @test "PASS" in status_vals
+    @test "FAIL" in status_vals
+    @test nrow(metrics_df) > 0
+    @test nrow(issues_df) > 0
+end

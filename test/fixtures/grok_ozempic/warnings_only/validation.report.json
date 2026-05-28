@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "source_tensor_count": 770,
+  "artifact_tensor_count": 770,
+  "router_count": 64,
+  "protected_router_violations": 0,
+  "protected_norm_violations": 0,
+  "expert_association_count": 8,
+  "unknown_unresolved_warning_count": 2,
+  "checksum_coverage": "770/770 source tensors",
+  "source_total_bytes": 318114914304,
+  "artifact_total_bytes": 318114914304,
+  "byte_accounting_result": "match",
+  "failures": [],
+  "warnings": [
+    {
+      "category": "unresolved_expert_projection",
+      "tensor": "*.slot_00.moe_expert.unresolved",
+      "message": "expert slot 00 is structurally preserved but projection label remains unresolved"
+    },
+    {
+      "category": "unresolved_expert_projection",
+      "tensor": "*.slot_02.moe_expert.unresolved",
+      "message": "expert slot 02 is structurally preserved but projection label remains unresolved"
+    }
+  ]
+}

@@ -331,11 +331,19 @@ function _nothing_to_missing(v::Union{Nothing,T}) where T
     v === nothing ? missing : v
 end
 
+include("grok_ozempic.jl")
+
 include(joinpath(@__DIR__, "normalizers", "SaaqNormalizer.jl"))
 const _saaq_normalizer = getfield(@__MODULE__, :SaaqNormalizer)
 const normalize_bundle_to_tables = getfield(_saaq_normalizer, :normalize_bundle_to_tables)
 const normalize_bundles_dir = getfield(_saaq_normalizer, :normalize_bundles_dir)
 const normalize_saaq_bundle_to_tables = getfield(_saaq_normalizer, :normalize_saaq_bundle_to_tables)
+
+include(joinpath(@__DIR__, "normalizers", "GrokOzempicNormalizer.jl"))
+const _grok_normalizer = getfield(@__MODULE__, :GrokOzempicNormalizer)
+const normalize_grok_ozempic_to_tables = getfield(_grok_normalizer, :normalize_grok_ozempic_to_tables)
+const normalize_grok_ozempic_dir = getfield(_grok_normalizer, :normalize_grok_ozempic_dir)
+const normalize_grok_ozempic_bundle_to_tables = getfield(_grok_normalizer, :normalize_grok_ozempic_bundle_to_tables)
 
 export imported_latent_path, load_latent_df, detect_delta_column, maybe_entropy_column
 export to_float64_vec, to_int_ms, summarise_run, pairwise_summary, fmt
@@ -345,5 +353,8 @@ export real, synthetic, skipped, failed
 export load_saaq_bundle, validate_saaq_bundle
 export normalize_bundle_to_tables, normalize_bundles_dir, normalize_saaq_bundle_to_tables
 export ComputeBackend, CPUBackend, CUDABackend, has_cuda, compute_delta_per_tick
+export GrokOzempicFailure, GrokOzempicWarning, GrokOzempicReport, GrokOzempicBundle
+export load_grok_ozempic_bundle, validate_grok_ozempic_bundle
+export normalize_grok_ozempic_to_tables, normalize_grok_ozempic_dir, normalize_grok_ozempic_bundle_to_tables
 
 end # module Surrogate_Viz
