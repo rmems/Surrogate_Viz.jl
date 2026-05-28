@@ -109,6 +109,7 @@ function pairwise_summary(off_df::DataFrame, on_df::DataFrame, delta_col::Symbol
     )
 
     nrow(joined) > 0 || error("No overlapping timestamps between the provided runs")
+    joined.delta_on_minus_off = joined.delta_on .- joined.delta_off
 
     delta_stats = compute_pairwise_deltas(joined.delta_off, joined.delta_on, backend)
     summary = Dict{String,Any}(
