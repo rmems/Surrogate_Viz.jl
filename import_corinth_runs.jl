@@ -1,6 +1,6 @@
 const PkgMod = Base.require(Base.PkgId(Base.UUID("44cfe95a-1eb2-52ea-b672-e2afdf69b78f"), "Pkg"))
 PkgMod.activate(@__DIR__)
-const parse_toml_file = getfield(Base.TOML, :parsefile)
+const TOML = Base.require(Base.PkgId(Base.UUID("fa267f1f-3847-5f8e-912b-6e1276ff8fca"), "TOML"))
 
 using CSV
 using DataFrames
@@ -19,7 +19,7 @@ force_import_enabled() = lowercase(strip(get(ENV, "FORCE_IMPORT", "false"))) in 
 
 function load_selected_runs(path::AbstractString)
     isfile(path) || error("Missing selected runs manifest: $(path)")
-    manifest = parse_toml_file(path)
+    manifest = TOML.parsefile(path)
     runs = get(manifest, "runs", nothing)
     runs isa Vector || error("Expected [[runs]] entries in $(path)")
     isempty(runs) && error("No selected runs found in $(path)")
