@@ -7,7 +7,8 @@ using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
 
 include(joinpath(@__DIR__, "..", "src", "Surrogate_Viz.jl"))
-const SV = getfield(Main, :Surrogate_Viz)
+using .Surrogate_Viz
+const SV = Surrogate_Viz
 
 function main()
     if length(ARGS) < 1
@@ -36,7 +37,8 @@ function main()
             println("  failures:             $(length(bundle.report.failures))")
             println("  warnings:             $(length(bundle.report.warnings))")
         catch e
-            println(stderr, "Warning: bundle loaded but had issues: $(e)")
+            println(stderr, "Error: bundle passed basic validation but failed to load: $(e)")
+            exit(1)
         end
         exit(0)
     else
