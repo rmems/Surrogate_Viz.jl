@@ -85,8 +85,44 @@ Surrogate_Viz.jl/
 │       └── grok_ozempic/         # Grok-ozempic synthetic fixture bundles
 ├── docs/
 │   └── validation.md             # Smoke-test commands for CI
-├── data/                         # (gitignored) imported run data
+├── data/                         # (gitignored) model checkpoints + imported runs
+│   ├── olmoe-1b-7b/              # .gitkeep (safetensors)
+│   ├── qwen3-moe-i1-GGUF IQ3_M.gguf/   # .gitkeep (GGUF)
+│   ├── gemma-4-26B-A4B-it-UD-IQ4_NL.gguf/   # .gitkeep (GGUF)
+│   ├── DeepSeek-Coder-V2-Lite-Instruct-Q6_K_L.gguf/   # .gitkeep (GGUF)
+│   ├── L3.2-8X3B-MOE-Dark-Champion-Inst-18.4B-uncen-ablit_D_AU-q5_k_m.gguf/   # .gitkeep (GGUF)
+│   ├── zaya1_8b_q8_0/            # .gitkeep (safetensors)
+│   ├── glm46v_flash_q8_0/        # .gitkeep (safetensors)
+│   ├── kimi_vl_a3b_q6_k/         # .gitkeep (safetensors)
+│   └── marco_nano_base_q8_0/     # .gitkeep (safetensors)
 ├── outputs/                      # (gitignored) generated dashboards + SR results
+│   ├── olmoe-1b-7b/
+│   │   ├── dashboards/           # .gitkeep
+│   │   └── sr_results/           # .gitkeep
+│   ├── qwen3-moe-i1-GGUF IQ3_M.gguf/
+│   │   ├── dashboards/
+│   │   └── sr_results/
+│   ├── gemma-4-26B-A4B-it-UD-IQ4_NL.gguf/
+│   │   ├── dashboards/
+│   │   └── sr_results/
+│   ├── DeepSeek-Coder-V2-Lite-Instruct-Q6_K_L.gguf/
+│   │   ├── dashboards/
+│   │   └── sr_results/
+│   ├── L3.2-8X3B-MOE-Dark-Champion-Inst-18.4B-uncen-ablit_D_AU-q5_k_m.gguf/
+│   │   ├── dashboards/
+│   │   └── sr_results/
+│   ├── zaya1_8b_q8_0/
+│   │   ├── dashboards/
+│   │   └── sr_results/
+│   ├── glm46v_flash_q8_0/
+│   │   ├── dashboards/
+│   │   └── sr_results/
+│   ├── kimi_vl_a3b_q6_k/
+│   │   ├── dashboards/
+│   │   └── sr_results/
+│   └── marco_nano_base_q8_0/
+│       ├── dashboards/
+│       └── sr_results/
 ├── SAAQ_discovery.jl             # SR.jl over raw RE4 telemetry
 ├── SAAQ_latent_discovery.jl      # SR.jl over 508-neuron latent telemetry
 ├── plot_saaq1_5_validation.jl    # SAAQ 1.5 paired-run validation dashboard
