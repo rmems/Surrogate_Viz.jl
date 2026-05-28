@@ -621,6 +621,7 @@ end
     @test nrow(issues_df) == 5
     @test sum(issues_df.severity .== "failure") == 3
     @test sum(issues_df.severity .== "warning") == 2
+    @test "issue_category" in names(issues_df)
 end
 
 @testset "GrokOzempicNormalizer — normalize_grok_ozempic_dir smoke" begin

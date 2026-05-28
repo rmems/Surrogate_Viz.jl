@@ -55,7 +55,7 @@ function normalize_grok_ozempic_to_tables(bundle::_grok_bundle_type)::Tuple{Data
     failures_rows = Dict{String,Any}[
         Dict{String,Any}(
             "bundle_path" => bundle.bundle_path,
-            "failure_category" => f.category,
+            "issue_category" => f.category,
             "tensor" => _nothing_to_missing(f.tensor),
             "message" => f.message,
             "severity" => "failure",
@@ -64,7 +64,7 @@ function normalize_grok_ozempic_to_tables(bundle::_grok_bundle_type)::Tuple{Data
     warnings_rows = Dict{String,Any}[
         Dict{String,Any}(
             "bundle_path" => bundle.bundle_path,
-            "failure_category" => w.category,
+            "issue_category" => w.category,
             "tensor" => _nothing_to_missing(w.tensor),
             "message" => w.message,
             "severity" => "warning",
@@ -73,7 +73,7 @@ function normalize_grok_ozempic_to_tables(bundle::_grok_bundle_type)::Tuple{Data
 
     all_issues = vcat(failures_rows, warnings_rows)
     issues_df = isempty(all_issues) ?
-        DataFrame(bundle_path=String[], failure_category=String[], tensor=Union{String,Missing}[], message=String[], severity=String[]) :
+        DataFrame(bundle_path=String[], issue_category=String[], tensor=Union{String,Missing}[], message=String[], severity=String[]) :
         DataFrame(all_issues)
 
     return runs_df, metrics_df, issues_df
@@ -105,7 +105,7 @@ function normalize_grok_ozempic_dir(input_dir::AbstractString)::Tuple{DataFrame,
     if isempty(runs_dfs)
         all_runs = DataFrame(bundle_path=String[], status=String[])
         all_metrics = DataFrame(bundle_path=String[], metric_name=String[], metric_value=Any[], metric_category=String[])
-        all_issues = DataFrame(bundle_path=String[], failure_category=String[], tensor=Union{String,Missing}[], message=String[], severity=String[])
+        all_issues = DataFrame(bundle_path=String[], issue_category=String[], tensor=Union{String,Missing}[], message=String[], severity=String[])
         return all_runs, all_metrics, all_issues
     end
 
