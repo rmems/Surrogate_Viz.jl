@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
-# ingest_saaq_bundles.jl
-# Walk a directory tree of corinth-canal run bundles, load each one,
+# ingest_grok_ozempic_bundles.jl
+# Walk a directory tree of grok-ozempic validation report bundles, load each one,
 # and write normalized CSV tables to the output directory.
 
 using Pkg
@@ -14,9 +14,9 @@ using DataFrames
 
 function main()
     if length(ARGS) < 2
-        println(stderr, "Usage: julia --project=. scripts/ingest_saaq_bundles.jl <input_dir> <output_dir>")
+        println(stderr, "Usage: julia --project=. scripts/ingest_grok_ozempic_bundles.jl <input_dir> <output_dir>")
         println(stderr, "")
-        println(stderr, "  Walks <input_dir> recursively, finds all run_manifest.json files,")
+        println(stderr, "  Walks <input_dir> recursively, finds all validation.report.json files,")
         println(stderr, "  loads each bundle, and writes normalized CSV tables to <output_dir>/.")
         exit(1)
     end
@@ -31,23 +31,23 @@ function main()
 
     mkpath(output_dir)
 
-    println("Ingesting bundles from: $(input_dir)")
-    println("Writing output to:      $(output_dir)")
+    println("Ingesting grok-ozempic bundles from: $(input_dir)")
+    println("Writing output to:                   $(output_dir)")
 
-    runs_df, metrics_df, warnings_df = SV.normalize_bundles_dir(input_dir)
+    runs_df, metrics_df, issues_df = SV.normalize_grok_ozempic_dir(input_dir)
 
     runs_path = joinpath(output_dir, "runs_table.csv")
     metrics_path = joinpath(output_dir, "metrics_table.csv")
-    warnings_path = joinpath(output_dir, "warnings_table.csv")
+    issues_path = joinpath(output_dir, "issues_table.csv")
 
     CSV.write(runs_path, runs_df)
     CSV.write(metrics_path, metrics_df)
-    CSV.write(warnings_path, warnings_df)
+    CSV.write(issues_path, issues_df)
 
-    println("✓ Ingested $(nrow(runs_df)) runs")
-    println("  runs_table.csv:     $(runs_path)")
-    println("  metrics_table.csv:  $(metrics_path)")
-    println("  warnings_table.csv: $(warnings_path)")
+    println("✓ Ingested $(nrow(runs_df)) bundles")
+    println("  runs_table.csv:    $(runs_path)")
+    println("  metrics_table.csv: $(metrics_path)")
+    println("  issues_table.csv:  $(issues_path)")
 end
 
 main()

@@ -109,7 +109,7 @@ function normalize_grok_ozempic_dir(input_dir::AbstractString)::Tuple{DataFrame,
         return all_runs, all_metrics, all_issues
     end
 
-    return vcat(runs_dfs..., cols=:union), vcat(metrics_dfs..., cols=:union), vcat(issues_dfs..., cols=:union)
+    return reduce(vcat, runs_dfs; cols=:union), reduce(vcat, metrics_dfs; cols=:union), reduce(vcat, issues_dfs; cols=:union)
 end
 
 export normalize_grok_ozempic_to_tables, normalize_grok_ozempic_dir, normalize_grok_ozempic_bundle_to_tables
