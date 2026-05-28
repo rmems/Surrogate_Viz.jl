@@ -1,5 +1,5 @@
-using Pkg
-Pkg.activate(@__DIR__)
+const PkgMod = Base.require(Base.PkgId(Base.UUID("44cfe95a-1eb2-52ea-b672-e2afdf69b78f"), "Pkg"))
+PkgMod.activate(@__DIR__)
 
 using SymbolicRegression
 using CSV
@@ -7,7 +7,7 @@ using DataFrames
 
 println("1. Loading raw Ship of Theseus telemetry...")
 # I just added telemetry.csv from the gaming-telemetry repo
-raw_data = CSV.read(joinpath(@__DIR__, "outputs", "root_artifacts", "telemetry.csv"), DataFrame)
+raw_data = CSV.read(joinpath(@__DIR__, "data", "telemetry.csv"), DataFrame)
 
 # To start out let's keep the test fast
 df = first(raw_data, 1000)

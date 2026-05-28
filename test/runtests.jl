@@ -347,6 +347,26 @@ end
     @test bundle.metrics.extra["custom_metric_qos_score"] == 0.987
 end
 
+@testset "SaaqBundleLoader — synthetic smokescreen bundle" begin
+    fixture = joinpath(@__DIR__, "fixtures", "bundles", "synthetic_smokescreen")
+    @test isdir(fixture)
+
+    bundle = load_saaq_bundle(fixture)
+    @test bundle.manifest.run_id == "test_smokescreen_20260528T130000"
+    @test bundle.manifest.run_status == synthetic
+    @test bundle.manifest.model_slug == "olmoe-1b-7b"
+    @test bundle.manifest.model_family == "olmoe"
+    @test bundle.manifest.heartbeat_enabled == false
+    @test isnothing(bundle.manifest.model_descriptor) || !startswith(bundle.manifest.model_descriptor, "[synthetic]")
+    @test bundle.manifest.repeat_idx == 1
+    @test bundle.manifest.repeat_count == 3
+    @test bundle.manifest.saaq_rule == "SaaqV1_5SqrtRate"
+    @test bundle.metrics.ticks_completed == 1000
+    @test bundle.metrics.latent_rows == 1000
+    @test bundle.metrics.mean_tick_elapsed_us ≈ 207.3
+    @test bundle.metrics.repeat_determinism == "matched"
+end
+
 @testset "SaaqBundleLoader — validate_saaq_bundle" begin
     valid_fixture = joinpath(@__DIR__, "fixtures", "bundles", "successful_synthetic")
     is_valid, errors = validate_saaq_bundle(valid_fixture)
@@ -390,7 +410,7 @@ end
     fixture_root = joinpath(@__DIR__, "fixtures", "bundles")
     runs_df, metrics_df, warnings_df = normalize_bundles_dir(fixture_root)
 
-    @test nrow(runs_df) == 5
+    @test nrow(runs_df) == 6
     status_vals = Set(runs_df.run_status)
     @test "real" in status_vals
     @test "synthetic" in status_vals
@@ -403,6 +423,7 @@ end
     @test "test_failed_20260528T120002" in run_ids
     @test "test_missing_optional_20260528T120003" in run_ids
     @test "test_unknown_extras_20260528T120004" in run_ids
+    @test "test_smokescreen_20260528T130000" in run_ids
 
     @test nrow(metrics_df) > 0
 

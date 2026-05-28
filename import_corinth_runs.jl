@@ -1,9 +1,9 @@
-using Pkg
-Pkg.activate(@__DIR__)
+const PkgMod = Base.require(Base.PkgId(Base.UUID("44cfe95a-1eb2-52ea-b672-e2afdf69b78f"), "Pkg"))
+PkgMod.activate(@__DIR__)
+const TOML = Base.require(Base.PkgId(Base.UUID("fa267f1f-3847-5f8e-912b-6e1276ff8fca"), "TOML"))
 
 using CSV
 using DataFrames
-import TOML
 
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")

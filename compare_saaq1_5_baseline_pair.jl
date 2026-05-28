@@ -1,9 +1,9 @@
-using Pkg
-Pkg.activate(@__DIR__)
+const PkgMod = Base.require(Base.PkgId(Base.UUID("44cfe95a-1eb2-52ea-b672-e2afdf69b78f"), "Pkg"))
+PkgMod.activate(@__DIR__)
+const TOML = Base.require(Base.PkgId(Base.UUID("fa267f1f-3847-5f8e-912b-6e1276ff8fca"), "TOML"))
 
 using CSV
 using DataFrames
-import TOML
 include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
 const SV = getfield(Main, :Surrogate_Viz)
 
