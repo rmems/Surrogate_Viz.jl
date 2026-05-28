@@ -2,17 +2,25 @@
 
 This file collects exact smoke-test commands for CI, contributors, and PR verification.
 
-## Bundle Ingestion Smoke Tests
-
 All commands assume the working directory is the repo root (`Surrogate_Viz.jl/`).
 
-### 1. Install dependencies
+## 1. Install Dependencies
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ```
 
-### 2. Validate a single fixture bundle
+## 2. Run Full Test Suite
+
+```bash
+julia --project=. -e 'using Pkg; Pkg.test()'
+```
+
+Expected: all tests pass including SAAQ bundle, compute backend, and grok-ozempic tests.
+
+## SAAQ Bundle Smoke Tests
+
+### Validate a single SAAQ fixture bundle
 
 ```bash
 julia --project=. scripts/validate_saaq_bundle.jl test/fixtures/bundles/successful_synthetic/
@@ -28,15 +36,15 @@ julia --project=. scripts/validate_saaq_bundle.jl test/fixtures/bundles/nonexist
 # Expected: exit code 1, error message
 ```
 
-### 3. Ingest all fixture bundles → normalized CSVs
+### Ingest all SAAQ fixture bundles → normalized CSVs
 
 ```bash
 julia --project=. scripts/ingest_saaq_bundles.jl test/fixtures/bundles/ /tmp/saaq_normalized/
 # Expected: writes runs_table.csv, metrics_table.csv, warnings_table.csv under /tmp/saaq_normalized/
-# 5 runs ingested (successful_synthetic, skipped_run, failed_run, missing_optional, unknown_extras)
+# 6 runs ingested (successful_synthetic, skipped_run, failed_run, missing_optional, unknown_extras, synthetic_smokescreen)
 ```
 
-### 4. Build dashboard from normalized fixtures
+### Build dashboard from normalized SAAQ fixtures
 
 ```bash
 julia --project=. scripts/build_saaq_dashboard.jl /tmp/saaq_normalized/ /tmp/saaq_reports/
@@ -44,14 +52,38 @@ julia --project=. scripts/build_saaq_dashboard.jl /tmp/saaq_normalized/ /tmp/saa
 #           warnings_table.csv under /tmp/saaq_reports/<yyyy-mm-dd>/
 ```
 
-### 5. Run full test suite
+## Grok-Ozempic Bundle Smoke Tests
+
+### Validate a single grok-ozempic fixture bundle
 
 ```bash
-julia --project=. -e 'using Pkg; Pkg.test()'
-# Expected: all tests pass including new SaaqBundleLoader and SaaqNormalizer tests
+julia --project=. scripts/validate_grok_ozempic_bundle.jl test/fixtures/grok_ozempic/pass/
+# Expected: exit code 0, prints report details (status=PASS, 770 tensors, 0 failures)
+
+julia --project=. scripts/validate_grok_ozempic_bundle.jl test/fixtures/grok_ozempic/fail/
+# Expected: exit code 0, prints report details (status=FAIL, 3 failures, 2 warnings)
+
+julia --project=. scripts/validate_grok_ozempic_bundle.jl test/fixtures/grok_ozempic/warnings_only/
+# Expected: exit code 0, prints report details (status=PASS, 2 warnings)
+
+julia --project=. scripts/validate_grok_ozempic_bundle.jl test/fixtures/grok_ozempic/missing_optional/
+# Expected: exit code 0, prints report details (status=PASS, defaults for omitted fields)
+
+julia --project=. scripts/validate_grok_ozempic_bundle.jl test/fixtures/grok_ozempic/nonexistent/
+# Expected: exit code 1, error message
+```
+
+### Ingest all grok-ozempic fixture bundles → normalized CSVs
+
+```bash
+julia --project=. scripts/ingest_grok_ozempic_bundles.jl test/fixtures/grok_ozempic/ /tmp/grok_normalized/
+# Expected: writes runs_table.csv, metrics_table.csv, issues_table.csv under /tmp/grok_normalized/
+# 4 bundles ingested (pass, fail, warnings_only, missing_optional)
 ```
 
 ## Fixture Coverage
+
+### SAAQ Fixtures
 
 | Fixture | Run Status | Coverage |
 |---|---|---|
@@ -60,6 +92,16 @@ julia --project=. -e 'using Pkg; Pkg.test()'
 | `failed_run/` | `failed` | error field set, validation_status=failed |
 | `missing_optional/` | `real` | Many optional manifest fields absent |
 | `unknown_extras/` | `real` | Unknown extra fields in manifest + summary.metrics |
+| `synthetic_smokescreen/` | `synthetic` | Full fixture with model_slug, repeat_idx/count |
+
+### Grok-Ozempic Fixtures
+
+| Fixture | Status | Coverage |
+|---|---|---|
+| `pass/` | `PASS` | Complete report, 770 tensors, byte match, no failures/warnings |
+| `fail/` | `FAIL` | 3 failures (missing_tensor, router_policy_violation, shape_mismatch), 2 warnings |
+| `warnings_only/` | `PASS` | 2 unresolved expert projection warnings, no failures |
+| `missing_optional/` | `PASS` | Omitted optional fields (source_tensor_count, source_total_bytes, etc.) |
 
 ## What Is Real vs Synthetic
 
@@ -71,9 +113,15 @@ julia --project=. -e 'using Pkg; Pkg.test()'
 
 ## Notes
 
+- **corinth-canal is not yet ready.** All SAAQ bundles come from synthetic fixtures
+  under `test/fixtures/bundles/`. Real corinth-canal integration will be documented
+  once the pipeline is live.
 - `warnings.jsonl` is defined in the corinth-canal schema but not currently emitted.
   The warning table will always be empty until corinth-canal starts writing that file.
 - `artifacts.json` is defined in the schema but not emitted. Artifact references
   are not yet supported in this ingestion layer.
 - Unknown manifest and metrics fields are preserved in the `extra` dict on each struct
   and exposed as `extra_<field>` columns in the runs/metrics tables.
+- Grok-ozempic bundles only read embedded `failures`/`warnings` arrays in
+  `validation.report.json`. Sidecar files (`validation.failures.json`,
+  `validation.warnings.json`) are not yet supported.
