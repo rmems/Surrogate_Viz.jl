@@ -64,7 +64,7 @@ function Surrogate_Viz.compute_delta_per_tick(
         return Surrogate_Viz.compute_delta_per_tick(features, Surrogate_Viz.CPUBackend())
     end
     feat_gpu = CUDA.CuArray(Float32.(features))
-    deltas_gpu = CUDA.diff(feat_gpu, dims=1)
+    deltas_gpu = diff(feat_gpu, dims=1)
     return Array(deltas_gpu)
 end
 
@@ -78,7 +78,7 @@ function Surrogate_Viz.compute_delta_per_tick(
         return Surrogate_Viz.compute_delta_per_tick(timestamps, features, Surrogate_Viz.CPUBackend())
     end
     feat_gpu = CUDA.CuArray(Float32.(features))
-    deltas_gpu = CUDA.diff(feat_gpu, dims=1)
+    deltas_gpu = diff(feat_gpu, dims=1)
     return timestamps[2:end], Array(deltas_gpu)
 end
 
