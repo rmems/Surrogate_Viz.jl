@@ -7,7 +7,10 @@ function has_cuda()
     try
         @eval using CUDA
         return CUDA.functional()
-    catch
-        return false
+    catch e
+        if e isa ArgumentError || e isa ErrorException || e isa LoadError
+            return false
+        end
+        rethrow()
     end
 end
