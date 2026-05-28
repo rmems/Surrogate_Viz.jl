@@ -9,6 +9,9 @@ using Statistics
 
 const IMPORT_ROOT = normpath(joinpath(@__DIR__, "..", "data", "corinth_runs"))
 
+include("backend.jl")
+include("kernels.jl")
+
 function validate_path_component(name::AbstractString, value::AbstractString)
     occursin("..", value) && error("Invalid $(name) path component (contains '..'): $(value)")
     (startswith(value, "/") || occursin("\\", value)) && error("Invalid $(name) path component (absolute or contains backslash): $(value)")
@@ -70,11 +73,15 @@ end
 to_float64_vec(col) = Float64[Float64(v) for v in skipmissing(col)]
 to_int_ms(v) = Int(round(Float64(v)))
 
-function summarise_run(df::DataFrame, run::Dict{String,<:Any}, delta_col::Symbol, entropy_col::Union{Nothing,Symbol})
+function summarise_run(df::DataFrame, run::Dict{String,<:Any}, delta_col::Symbol, entropy_col::Union{Nothing,Symbol};
+                     backend::ComputeBackend = CPUBackend())
     nrow(df) > 0 || error("summarise_run: empty DataFrame for run id=$(run["id"]) condition=$(run["condition"])")
 
     delta_values = to_float64_vec(df[!, delta_col])
     isempty(delta_values) && error("summarise_run: column $(delta_col) is empty after dropping missing values for run $(run["id"])")
+
+    entropy_values = entropy_col !== nothing ? to_float64_vec(df[!, entropy_col]) : nothing
+    stats = compute_run_stats(delta_values, entropy_values, backend)
 
     row = Dict{String,Any}(
         "run_id" => run["id"],
@@ -82,29 +89,19 @@ function summarise_run(df::DataFrame, run::Dict{String,<:Any}, delta_col::Symbol
         "rows" => nrow(df),
         "first_ms" => to_int_ms(first(df[!, :timestamp_ms])),
         "last_ms" => to_int_ms(last(df[!, :timestamp_ms])),
-        "mean_delta" => Statistics.mean(delta_values),
-        "max_delta" => maximum(delta_values),
-        "final_delta" => last(delta_values),
+        "mean_delta" => stats.mean_delta,
+        "max_delta" => stats.max_delta,
+        "final_delta" => stats.final_delta,
     )
 
-    if entropy_col !== nothing
-        entropy_values = to_float64_vec(df[!, entropy_col])
-        if isempty(entropy_values)
-            row["mean_entropy"] = missing
-            row["final_entropy"] = missing
-        else
-            row["mean_entropy"] = Statistics.mean(entropy_values)
-            row["final_entropy"] = last(entropy_values)
-        end
-    else
-        row["mean_entropy"] = missing
-        row["final_entropy"] = missing
-    end
+    row["mean_entropy"] = stats.mean_entropy
+    row["final_entropy"] = stats.final_entropy
 
     return row
 end
 
-function pairwise_summary(off_df::DataFrame, on_df::DataFrame, delta_col::Symbol, entropy_col::Union{Nothing,Symbol})
+function pairwise_summary(off_df::DataFrame, on_df::DataFrame, delta_col::Symbol, entropy_col::Union{Nothing,Symbol};
+                          backend::ComputeBackend = CPUBackend())
     joined = innerjoin(
         select(off_df, :timestamp_ms, delta_col => :delta_off, (entropy_col === nothing ? [] : [entropy_col => :entropy_off])...),
         select(on_df, :timestamp_ms, delta_col => :delta_on, (entropy_col === nothing ? [] : [entropy_col => :entropy_on])...),
@@ -114,11 +111,12 @@ function pairwise_summary(off_df::DataFrame, on_df::DataFrame, delta_col::Symbol
     nrow(joined) > 0 || error("No overlapping timestamps between the provided runs")
     joined.delta_on_minus_off = joined.delta_on .- joined.delta_off
 
+    delta_stats = compute_pairwise_deltas(joined.delta_off, joined.delta_on, backend)
     summary = Dict{String,Any}(
         "paired_rows" => nrow(joined),
-        "mean_delta_on_minus_off" => Statistics.mean(joined.delta_on_minus_off),
-        "max_abs_delta_on_minus_off" => maximum(abs.(joined.delta_on_minus_off)),
-        "final_delta_on_minus_off" => last(joined.delta_on_minus_off),
+        "mean_delta_on_minus_off" => delta_stats.mean_delta,
+        "max_abs_delta_on_minus_off" => delta_stats.max_abs_delta,
+        "final_delta_on_minus_off" => delta_stats.final_delta,
     )
 
     if entropy_col !== nothing
@@ -327,6 +325,8 @@ function validate_saaq_bundle(path::AbstractString)::Tuple{Bool, Vector{String}}
     return isempty(errors), errors
 end
 
+function compute_delta_per_tick end
+
 function _nothing_to_missing(v::Union{Nothing,T}) where T
     v === nothing ? missing : v
 end
@@ -344,5 +344,6 @@ export RunStatus, RunManifest, RunMetrics, RunWarning, SaaqBundle
 export real, synthetic, skipped, failed
 export load_saaq_bundle, validate_saaq_bundle
 export normalize_bundle_to_tables, normalize_bundles_dir, normalize_saaq_bundle_to_tables
+export ComputeBackend, CPUBackend, CUDABackend, has_cuda, compute_delta_per_tick
 
 end # module Surrogate_Viz
