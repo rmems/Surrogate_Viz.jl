@@ -9,6 +9,8 @@ import .Surrogate_Viz: real, synthetic, skipped, failed
 import .Surrogate_Viz: load_saaq_bundle, validate_saaq_bundle
 import .Surrogate_Viz: normalize_bundle_to_tables, normalize_bundles_dir
 import .Surrogate_Viz: RunManifest, RunMetrics, RunWarning, SaaqBundle, RunStatus
+import .Surrogate_Viz: CPUBackend, CUDABackend, has_cuda, compute_delta_per_tick
+import .Surrogate_Viz: pairwise_summary, summarise_run
 
 @testset "Surrogate_Viz module exports" begin
     @test :imported_latent_path in names(Surrogate_Viz)
@@ -428,4 +430,109 @@ end
     @test nrow(metrics_df) > 0
 
     @test nrow(warnings_df) == 0
+end
+
+@testset "ComputeBackend types" begin
+    @test Surrogate_Viz.CPUBackend() isa Surrogate_Viz.ComputeBackend
+    @test Surrogate_Viz.CUDABackend() isa Surrogate_Viz.ComputeBackend
+    @test Surrogate_Viz.CPUBackend() !== Surrogate_Viz.CUDABackend()
+    @test Surrogate_Viz.has_cuda() isa Bool
+end
+
+@testset "compute_delta_per_tick — CPUBackend" begin
+    features = Float32[1 2 3 4;
+                        5 6 7 8;
+                        9 10 11 12]
+    result = compute_delta_per_tick(features, CPUBackend())
+    @test size(result) == (2, 4)
+    @test result[1, 1] == 4.0f0
+    @test result[2, 4] == 4.0f0
+    @test result == diff(features, dims=1)
+end
+
+@testset "compute_delta_per_tick — with timestamps" begin
+    ts = [0, 100, 200, 300]
+    features = Float32[1 2 3 4;
+                        5 6 7 8;
+                        9 10 11 12;
+                        13 14 15 16]
+    t_out, deltas = compute_delta_per_tick(ts, features, CPUBackend())
+    @test t_out == [100, 200, 300]
+    @test size(deltas) == (3, 4)
+    @test deltas[1, 1] == 4.0f0
+end
+
+@testset "pairwise_summary — CPUBackend no-regression" begin
+    off_df = DataFrame(
+        timestamp_ms = [0, 100, 200],
+        saaq_delta_q_v15_target = [0.5, 0.6, 0.7],
+        routing_entropy = [0.1, 0.2, 0.3],
+    )
+    on_df = DataFrame(
+        timestamp_ms = [0, 100, 200],
+        saaq_delta_q_v15_target = [1.5, 1.6, 1.7],
+        routing_entropy = [0.4, 0.5, 0.6],
+    )
+    delta_col = :saaq_delta_q_v15_target
+    entropy_col = :routing_entropy
+
+    joined, summary = pairwise_summary(off_df, on_df, delta_col, entropy_col; backend=CPUBackend())
+
+    @test nrow(joined) == 3
+    @test summary["paired_rows"] == 3
+    @test summary["mean_delta_on_minus_off"] ≈ 1.0
+    @test summary["max_abs_delta_on_minus_off"] ≈ 1.0
+    @test summary["final_delta_on_minus_off"] == 1.0
+    @test summary["mean_entropy_on_minus_off"] ≈ 0.3
+    @test summary["final_entropy_on_minus_off"] == 0.3
+end
+
+@testset "summarise_run — CPUBackend no-regression" begin
+    df = DataFrame(
+        timestamp_ms = [0, 100, 200, 300],
+        saaq_delta_q_v15_target = [0.5, 0.6, 0.7, 0.8],
+        routing_entropy = [0.1, 0.2, 0.3, 0.4],
+    )
+    run = Dict{String,Any}("id" => "run_001", "condition" => "baseline")
+
+    row = summarise_run(df, run, :saaq_delta_q_v15_target, :routing_entropy; backend=CPUBackend())
+
+    @test row["run_id"] == "run_001"
+    @test row["rows"] == 4
+    @test row["mean_delta"] ≈ 0.65
+    @test row["max_delta"] == 0.8
+    @test row["final_delta"] == 0.8
+    @test row["mean_entropy"] ≈ 0.25
+    @test row["final_entropy"] == 0.4
+end
+
+@testset "CUDA path (if available)" begin
+    if has_cuda()
+        off_df = DataFrame(
+            timestamp_ms = [0, 100, 200],
+            saaq_delta_q_v15_target = Float32[0.5, 0.6, 0.7],
+        )
+        on_df = DataFrame(
+            timestamp_ms = [0, 100, 200],
+            saaq_delta_q_v15_target = Float32[1.5, 1.6, 1.7],
+        )
+
+        joined_cpu, summary_cpu = pairwise_summary(off_df, on_df, :saaq_delta_q_v15_target, nothing; backend=CPUBackend())
+        joined_gpu, summary_gpu = pairwise_summary(off_df, on_df, :saaq_delta_q_v15_target, nothing; backend=CUDABackend())
+
+        @test summary_cpu["paired_rows"] == summary_gpu["paired_rows"]
+        @test abs(summary_cpu["mean_delta_on_minus_off"] - summary_gpu["mean_delta_on_minus_off"]) < 1e-5
+        @test abs(summary_cpu["max_abs_delta_on_minus_off"] - summary_gpu["max_abs_delta_on_minus_off"]) < 1e-5
+        @test abs(summary_cpu["final_delta_on_minus_off"] - summary_gpu["final_delta_on_minus_off"]) < 1e-5
+
+        features = Float32[1 2 3 4;
+                          5 6 7 8;
+                          9 10 11 12]
+        cpu_result = compute_delta_per_tick(features, CPUBackend())
+        gpu_result = compute_delta_per_tick(features, CUDABackend())
+        @test cpu_result ≈ gpu_result
+    else
+        @test has_cuda() == false
+        @info "CUDA not functional on this runner — skipping CUDA-specific tests"
+    end
 end
