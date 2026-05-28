@@ -1,0 +1,43 @@
+{
+  "status": "FAIL",
+  "source_tensor_count": 770,
+  "artifact_tensor_count": 768,
+  "router_count": 64,
+  "protected_router_violations": 2,
+  "protected_norm_violations": 1,
+  "expert_association_count": 8,
+  "unknown_unresolved_warning_count": 3,
+  "checksum_coverage": "768/770 source tensors",
+  "source_total_bytes": 318114914304,
+  "artifact_total_bytes": 317812000000,
+  "byte_accounting_result": "mismatch",
+  "failures": [
+    {
+      "category": "missing_tensor",
+      "tensor": "blk.0.ffn_gate_inp.weight",
+      "message": "source tensor blk.0.ffn_gate_inp.weight not found in artifact index"
+    },
+    {
+      "category": "router_policy_violation",
+      "tensor": "blk.1.ffn_gate_inp.weight",
+      "message": "router tensor blk.1.ffn_gate_inp.weight is not protected by the artifact policy"
+    },
+    {
+      "category": "shape_mismatch",
+      "tensor": "blk.2.ffn_down.weight",
+      "message": "shape mismatch for blk.2.ffn_down.weight: expected [640, 7168] got [640, 7168, 1]"
+    }
+  ],
+  "warnings": [
+    {
+      "category": "unresolved_expert_projection",
+      "tensor": "*.slot_00.moe_expert.unresolved",
+      "message": "expert slot 00 is structurally preserved but projection label remains unresolved"
+    },
+    {
+      "category": "unknown_dense_slot",
+      "tensor": "*.slot_03",
+      "message": "dense attention slots are wrapped as existing int8 payloads unless shape/dtype/count drift occurs"
+    }
+  ]
+}

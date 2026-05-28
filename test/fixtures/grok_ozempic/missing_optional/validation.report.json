@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "artifact_tensor_count": 770,
+  "router_count": 64,
+  "expert_association_count": 8,
+  "checksum_coverage": "770/770 source tensors",
+  "byte_accounting_result": "match",
+  "failures": [],
+  "warnings": []
+}
