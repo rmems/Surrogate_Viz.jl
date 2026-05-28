@@ -1,9 +1,9 @@
-using Pkg
-Pkg.activate(@__DIR__)
+const PkgMod = Base.require(Base.PkgId(Base.UUID("44cfe95a-1eb2-52ea-b672-e2afdf69b78f"), "Pkg"))
+PkgMod.activate(@__DIR__)
+const parse_toml_file = getfield(Base.TOML, :parsefile)
 
 using CSV
 using DataFrames
-import TOML
 
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")
@@ -19,7 +19,7 @@ force_import_enabled() = lowercase(strip(get(ENV, "FORCE_IMPORT", "false"))) in 
 
 function load_selected_runs(path::AbstractString)
     isfile(path) || error("Missing selected runs manifest: $(path)")
-    manifest = TOML.parsefile(path)
+    manifest = parse_toml_file(path)
     runs = get(manifest, "runs", nothing)
     runs isa Vector || error("Expected [[runs]] entries in $(path)")
     isempty(runs) && error("No selected runs found in $(path)")

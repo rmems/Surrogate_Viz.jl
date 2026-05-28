@@ -1,10 +1,10 @@
-using Pkg
-Pkg.activate(@__DIR__)
+const PkgMod = Base.require(Base.PkgId(Base.UUID("44cfe95a-1eb2-52ea-b672-e2afdf69b78f"), "Pkg"))
+PkgMod.activate(@__DIR__)
 
 using CSV
 using DataFrames
-import Dates
-import Random
+const DatesMod = Base.require(Base.PkgId(Base.UUID("ade2ca70-3891-5945-98fb-dc099432e06a"), "Dates"))
+const RandomMod = Base.require(Base.PkgId(Base.UUID("9a3f8284-a2c9-5f02-9a11-845980a1fd5c"), "Random"))
 
 ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")
@@ -32,8 +32,8 @@ function model_name()
 end
 
 function default_dashboard_path()
-    stamp = Dates.format(Dates.now(), "yyyymmdd_HHMMSS")
-    suffix = Random.randstring(6)
+    stamp = DatesMod.format(DatesMod.now(), "yyyymmdd_HHMMSS")
+    suffix = RandomMod.randstring(6)
     dir = joinpath(@__DIR__, "outputs", model_name(), "dashboards", string(stamp, "_", suffix))
     mkpath(dir)
     return joinpath(dir, "saaq1_5_validation_dashboard.png")

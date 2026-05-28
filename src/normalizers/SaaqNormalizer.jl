@@ -81,7 +81,7 @@ function normalize_bundle_to_tables(bundle::_saaq_bundle_type)::Tuple{DataFrame,
         push!(metrics_rows, Dict{String,Any}(
             "run_id" => m.run_id,
             "metric_name" => k,
-            "metric_value" => v,
+            "metric_value" => v === nothing ? missing : v,
             "metric_category" => "extra",
         ))
     end
@@ -178,18 +178,10 @@ function normalize_bundles_dir(input_dir::AbstractString)::Tuple{DataFrame, Data
     all_warnings = vcat(warnings_dfs..., cols=:union)
 
     # Deduplicate: keep last occurrence per run_id
-    all_runs = combine(groupby(all_runs, :run_id)) do sdf
-        last(sdf, 1)
-    end
+    all_runs = unique(all_runs, :run_id, keep=:last)
     
-    # Filter metrics/warnings to only rows from the last-loaded bundle per run_id
-    last_bundle_seq = Dict{String, Int}()
-    for row in eachrow(all_runs)
-        last_bundle_seq[row.run_id] = row._bundle_seq
-    end
-    
-    all_metrics = all_metrics[map(row -> last_bundle_seq[row.run_id] == row._bundle_seq, eachrow(all_metrics)), :]
-    all_warnings = all_warnings[map(row -> last_bundle_seq[row.run_id] == row._bundle_seq, eachrow(all_warnings)), :]
+    all_metrics = semijoin(all_metrics, all_runs, on=[:run_id, :_bundle_seq])
+    all_warnings = semijoin(all_warnings, all_runs, on=[:run_id, :_bundle_seq])
     
     # Drop the temporary _bundle_seq column
     select!(all_runs, Not(:_bundle_seq))

@@ -6,13 +6,13 @@
 #
 # Outputs go to outputs/<model>/sr_results/<run_id>/.
 
-using Pkg
-Pkg.activate(@__DIR__)
-Pkg.instantiate()
+const PkgMod = Base.require(Base.PkgId(Base.UUID("44cfe95a-1eb2-52ea-b672-e2afdf69b78f"), "Pkg"))
+PkgMod.activate(@__DIR__)
+PkgMod.instantiate()
+const parse_toml_file = getfield(Base.TOML, :parsefile)
 
 using CSV
 using DataFrames
-import TOML
 import SymbolicRegression
 include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
 const SV = getfield(Main, :Surrogate_Viz)
@@ -39,7 +39,7 @@ const TARGET_COL = :saaq_delta_q_target
 
 function load_runs_manifest(path::AbstractString = SELECTED_RUNS_PATH)
     isfile(path) || error("Missing selected runs manifest: $(path)")
-    manifest = TOML.parsefile(path)
+    manifest = parse_toml_file(path)
     runs = get(manifest, "runs", nothing)
     runs isa Vector || error("Expected [[runs]] entries in $(path)")
     isempty(runs) && error("No selected runs found in $(path)")
