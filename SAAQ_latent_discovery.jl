@@ -9,7 +9,7 @@
 const PkgMod = Base.require(Base.PkgId(Base.UUID("44cfe95a-1eb2-52ea-b672-e2afdf69b78f"), "Pkg"))
 PkgMod.activate(@__DIR__)
 PkgMod.instantiate()
-const TOML = Base.require(Base.PkgId(Base.UUID("fa267f1f-3847-5f8e-912b-6e1276ff8fca"), "TOML"))
+const TOML = Base.require(Base.PkgId(Base.UUID("fa267f1f-6049-4f14-aa54-33bafae1ed76"), "TOML"))
 
 using CSV
 using DataFrames
@@ -193,23 +193,27 @@ function main()
 
         if niterations > 0
             println("Launching SR search ($(niterations) iterations)...")
-            hof = run_sr(X, y;
-                niterations = niterations,
+            sr_opts = SymbolicRegression.Options(
                 binary_operators = [+, -, *, /],
                 unary_operators = [exp, sqrt, SymbolicRegression.square],
                 maxsize = 15,
                 parsimony = 0.01,
                 npopulations = 20,
+                output_directory = out_dir,
             )
+            hof = SymbolicRegression.equation_search(X, y; niterations = niterations, options = sr_opts,
+                variable_names = string.(FEATURE_COLS))
             println("\n=== Pareto front for $(run["id"]) ===")
             dominating = SymbolicRegression.calculate_pareto_frontier(hof)
             for member in dominating
-                println("Loss: $(member.loss)  Complexity: $(member.complexity)  Eq: $(member.tree)")
+                comp = SymbolicRegression.compute_complexity(member, sr_opts)
+                println("Loss: $(member.loss)  Complexity: $(comp)  Eq: $(member.tree)")
             end
             open(joinpath(out_dir, "pareto_front.csv"), "w") do io
                 println(io, "complexity,loss,equation")
                 for member in dominating
-                    println(io, "$(member.complexity),$(member.loss),\"$(replace(string(member.tree), "\"" => "\"\""))\"")
+                    comp = SymbolicRegression.compute_complexity(member, sr_opts)
+                    println(io, "$(comp),$(member.loss),\"$(replace(string(member.tree), "\"" => "\"\""))\"")
                 end
             end
         else
