@@ -37,6 +37,7 @@ session-ses_*.md
 # Build artifacts
 build/
 dist/
+.julia_depot/
 *.o
 *.so
 *.dylib

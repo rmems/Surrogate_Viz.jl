@@ -18,4 +18,4 @@ jobs:
       - name: Instantiate
         run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
       - name: Run tests
-        run: julia --project=. -e 'include("test/runtests.jl")'
+        run: julia --project=. -e 'using Pkg; Pkg.test()'

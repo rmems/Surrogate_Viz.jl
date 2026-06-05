@@ -18,6 +18,9 @@ julia --project=. -e 'using Pkg; Pkg.instantiate()'
 # Run the full test suite
 julia --project=. -e 'using Pkg; Pkg.test()'
 
+# Local fallback if juliaup or depot writeability is constrained
+./scripts/run_tests_local.sh
+
 # Validate a single SAAQ bundle
 julia --project=. scripts/validate_saaq_bundle.jl test/fixtures/bundles/successful_synthetic/
 
@@ -350,6 +353,16 @@ Run the test suite from the repo root:
 julia --project=. -e 'using Pkg; Pkg.instantiate()'
 julia --project=. -e 'using Pkg; Pkg.test()'
 ```
+
+If `julia` is launched through `juliaup` and fails before startup, or your
+default depot is not writable, use the repo-supported local wrapper instead:
+
+```bash
+./scripts/run_tests_local.sh
+```
+
+Override the Julia binary with `JULIA_BIN=/path/to/julia` if your local 1.12
+binary lives somewhere else.
 
 Tests cover the `Surrogate_Viz` module's shared utilities — import paths,
 telemetry column detection, paired-run comparison mechanics, bundle
