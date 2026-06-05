@@ -5,10 +5,15 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
 
 julia_bin="${JULIA_BIN:-julia}"
-direct_julia="${HOME}/.julia/juliaup/julia-1.12.6+0.x64.linux.gnu/bin/julia"
 
-if [[ "${julia_bin}" == "julia" ]] && ! "${julia_bin}" --version >/dev/null 2>&1 && [[ -x "${direct_julia}" ]]; then
-    julia_bin="${direct_julia}"
+# Try juliaup first (most robust), then fall back to PATH julia
+if command -v juliaup >/dev/null 2>&1; then
+    julia_bin="$(juliaup default)"
+fi
+
+if [[ "${julia_bin}" == "julia" ]] && ! "${julia_bin}" --version >/dev/null 2>&1; then
+    # final fallback: any julia on PATH
+    julia_bin="julia"
 fi
 
 depot_root="${JULIA_WRITABLE_DEPOT:-${repo_root}/.julia_depot}"
