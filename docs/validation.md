@@ -10,13 +10,6 @@ All commands assume the working directory is the repo root (`Surrogate_Viz.jl/`)
 julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ```
 
-Local fallback when `juliaup` launcher state or depot writeability prevents
-startup:
-
-```bash
-./scripts/run_tests_local.sh
-```
-
 ## 2. Run Full Test Suite
 
 ```bash
