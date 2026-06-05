@@ -106,7 +106,7 @@ function write_report(
     push!(lines, "- Model: `$(off_run["model"])` (`$(off_run["family"])`)")
     push!(lines, "- Telemetry source: `$(off_run["telemetry_source"])`")
     push!(lines, "- Rule: `$(off_run["rule"])`")
-    push!(lines, "- Equation source: `outputs/20260414_194227_v2pNMk/pareto_front.csv` (SymbolicRegression discovery)")
+    push!(lines, "- Equation source: `outputs/20260414_194227_v2pNMk/hall_of_fame.csv` (SymbolicRegression discovery)")
     push!(lines, "- Delta column: `$(delta_col)`")
     push!(lines, "- Routing entropy column: `$(entropy_col === nothing ? "not present" : string(entropy_col))`")
     push!(lines, "- Plot: `$(relpath(PLOT_PATH, REPO_ROOT))`")
