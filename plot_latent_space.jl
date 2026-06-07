@@ -9,24 +9,23 @@ using Plots
 # Grok Build 0.1 model: bring in the pure-Julia CUDA visual kernels (and has_cuda)
 # that were added for the combined visuals + runner PR. When run with the project
 # environment (which now contains CUDA.jl) this will make cuda_best_walker_density_histogram
-# available for the density panel, giving better "looks on the png" for the revived
-# OG first-experiment visuals (the original map_*.png from the user-specified external first-day data dir).
+# available for the density panel.
 const SV = Base.require(Base.PkgId(Base.UUID("0e7d9c34-7da8-46ec-ad35-4cb1b8ff7bae"), "Surrogate_Viz"))
 
-# Grok Build 0.1 model: revived for GH#42. Stopped using og data in directories per user request.
-# This script accepts input paths for telemetry; defaults to a generic data file if present.
-# Use pure-Julia CUDA (see kernels) for improved visual "looks" on the density/path panels (combined #43/#44 work in one PR).
+# Grok Build 0.1 model: accepts input paths for telemetry; defaults to generic data file.
+# No og data directories are used (per user request). Use pure-Julia CUDA (see kernels)
+# for improved visual "looks" on the density/path panels (combined #43/#44 work in one PR).
 
 const TICK_PATTERN = r"^tick=(\d+) best_walker=(\d+) elapsed_us=\d+$"
 
-# Support the original first-day naming (telemetry_olmoe_math_logic.txt -> map_olmoe_math_logic.png)
-# as well as the old internal defaults and explicit corinth paths.
+# Support the original naming (telemetry_olmoe_math_logic.txt -> map_olmoe_math_logic.png)
+# as well as corinth paths. No og data directories.
 function input_path()
     if length(ARGS) >= 1
         return ARGS[1]
     end
-    # Grok Build 0.1 model: default (no og data in directories per user). Use provided path or generic data file.
-    return "data/telemetry_math_logic.txt"  # may not exist; provide via args for OG revival tests
+    # Grok Build 0.1 model: default to non-og data file. Provide via args if needed.
+    return "data/telemetry_math_logic.txt"
 end
 
 function output_path()
@@ -41,7 +40,7 @@ function output_path()
     if occursin("OMLoE", inp) || occursin("olmoe", inp)
         return "map_olmoe_math_logic.png"
     end
-    # Grok Build 0.1 model: return canonical OG name to match first-day PNGs and docs (fixed inconsistent naming per review).
+    # Grok Build 0.1 model: canonical name for olmoe-style outputs.
     return "map_olmoe_math_logic.png"
 end
 
@@ -62,8 +61,7 @@ function load_tick_data(path::AbstractString)
     return DataFrame(tick=ticks, best_walker=best_walkers)
 end
 
-# Grok Build 0.1 model: optional pure-Julia CUDA path for the "Best Walker Firing Density" histogram
-# (the visual primitive that directly improves "looks on the png" for the revived first-day graphs).
+# Grok Build 0.1 model: optional pure-Julia CUDA path for the "Best Walker Firing Density" histogram.
 # The actual CUDA kernel lives in src/kernels.jl (added as part of the combined visuals+runner PR).
 # Falls back to the plain histogram when CUDA is not available or not requested.
 function build_dashboard(df::DataFrame; use_cuda::Bool=true)
@@ -75,9 +73,8 @@ function build_dashboard(df::DataFrame; use_cuda::Bool=true)
         title="SNN Routing Path Over Time",
         xlabel="Tick",
         ylabel="Best Walker Index",
-        # Grok Build 0.1 model: ylims=(2047, 0) to match the OG y configuration from the original first-day PNGs
-        # (reversed y-axis so higher walker indices appear at the top, matching the classic walker/spiking graphs
-        # from the user-specified external first-day data dir for #42 revival).
+        # Grok Build 0.1 model: ylims=(2047, 0) for reversed y-axis (higher walker indices at top)
+        # to match historical walker/spiking graph orientation.
         ylims=(2047, 0),
         markersize=6,
         color=:dodgerblue3,
@@ -133,7 +130,7 @@ function main()
 
     println("Loaded $(nrow(df)) tick rows from $(input_file)")
     println("Saved dashboard to $(output_file)")
-    println("Grok Build 0.1 model: revival targeting OG first-experiment PNGs (user-specified external first-day data dir). Pure Julia CUDA visual kernels (in ext/CUDABackendExt.jl, #43/#44) used for density when available.")
+    println("Grok Build 0.1 model: pure Julia CUDA visual kernels (in ext/CUDABackendExt.jl) used for density when available. No og data directories.")
 end
 
 main()

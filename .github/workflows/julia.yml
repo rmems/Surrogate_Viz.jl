@@ -22,8 +22,7 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # CUDA / GPU job for the pure-Julia CUDA visual kernels (walker density, path,
-  # spiking overlays) that improve the "looks on the png" for the revived first-day
-  # OG first-experiment originals (GH#42 path: the user-specified external first-day-testing-real-weights/ dir).
+  # spiking overlays).
   #
   # This job + the kernel implementation + runner hardening = the combined PR for
   # the #43 visuals + #44 (self-hosted Julia CUDA runner) scope.
