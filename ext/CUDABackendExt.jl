@@ -62,7 +62,7 @@ function _compute_delta_per_tick_cuda(timestamps::AbstractVector, features::Abst
 end
 
 # Grok Build 0.1 model: top-level kernel to avoid closure/Box issues on GPU (fixed per review).
-function hist_kernel!(walkers, hist, bin_size_f, n_items, n_bins)
+function hist_kernel!(walkers, hist, bin_size_f, n_items, n_bins, max_walker)
     i = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     if i <= n_items
         w = walkers[i]
@@ -89,7 +89,7 @@ function _cuda_best_walker_density_histogram(
 
     threads = 256
     blocks = min(1024, cld(n, threads))
-    CUDA.@cuda threads = threads blocks = blocks hist_kernel!(d_walkers, d_hist, Float32(bin_size), n, n_bins)
+    CUDA.@cuda threads = threads blocks = blocks hist_kernel!(d_walkers, d_hist, Float32(bin_size), n, n_bins, max_walker)
 
     return Int.(Array(d_hist))
 end

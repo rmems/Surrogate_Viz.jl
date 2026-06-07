@@ -32,15 +32,6 @@ function output_path()
     if length(ARGS) >= 2
         return ARGS[2]
     end
-    # When the input looks like the original fourth-test telemetry, produce a name that matches the checked-in original PNG.
-    inp = input_path()
-    if occursin("telemetry_olmoe_math_logic", inp) || occursin("fourth-test", inp)
-        return "map_olmoe_math_logic.png"
-    end
-    if occursin("OMLoE", inp) || occursin("olmoe", inp)
-        return "map_olmoe_math_logic.png"
-    end
-    # Grok Build 0.1 model: canonical name for olmoe-style outputs.
     return "map_olmoe_math_logic.png"
 end
 
@@ -133,4 +124,8 @@ function main()
     println("Grok Build 0.1 model: pure Julia CUDA visual kernels (in ext/CUDABackendExt.jl) used for density when available. No og data directories.")
 end
 
-main()
+# Guard so that `include("plot_latent_space.jl")` (e.g. from CI -e blocks) does not auto-execute the CLI.
+# Direct `julia plot_latent_space.jl [input] [output]` still runs as before.
+if abspath(PROGRAM_FILE) == @__FILE__
+    main()
+end

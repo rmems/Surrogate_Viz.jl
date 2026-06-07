@@ -4,13 +4,13 @@ using DataFrames
 using Statistics
 using TOML
 
-include(joinpath(@__DIR__, "..", "src", "Surrogate_Viz.jl"))
-import .Surrogate_Viz: real, synthetic, skipped, failed
-import .Surrogate_Viz: load_saaq_bundle, validate_saaq_bundle
-import .Surrogate_Viz: normalize_bundle_to_tables, normalize_bundles_dir
-import .Surrogate_Viz: RunManifest, RunMetrics, RunWarning, SaaqBundle, RunStatus
-import .Surrogate_Viz: CPUBackend, CUDABackend, has_cuda, compute_delta_per_tick
-import .Surrogate_Viz: pairwise_summary, summarise_run
+using Surrogate_Viz
+using Surrogate_Viz: real, synthetic, skipped, failed
+using Surrogate_Viz: load_saaq_bundle, validate_saaq_bundle
+using Surrogate_Viz: normalize_bundle_to_tables, normalize_bundles_dir
+using Surrogate_Viz: RunManifest, RunMetrics, RunWarning, SaaqBundle, RunStatus
+using Surrogate_Viz: CPUBackend, CUDABackend, has_cuda, compute_delta_per_tick
+using Surrogate_Viz: pairwise_summary, summarise_run
 
 @testset "Surrogate_Viz module exports" begin
     @test :imported_latent_path in names(Surrogate_Viz)
@@ -531,9 +531,9 @@ end
     end
 end
 
-import .Surrogate_Viz: GrokOzempicFailure, GrokOzempicWarning, GrokOzempicReport, GrokOzempicBundle
-import .Surrogate_Viz: load_grok_ozempic_bundle, validate_grok_ozempic_bundle
-import .Surrogate_Viz: normalize_grok_ozempic_to_tables, normalize_grok_ozempic_dir, normalize_grok_ozempic_bundle_to_tables
+using Surrogate_Viz: GrokOzempicFailure, GrokOzempicWarning, GrokOzempicReport, GrokOzempicBundle
+using Surrogate_Viz: load_grok_ozempic_bundle, validate_grok_ozempic_bundle
+using Surrogate_Viz: normalize_grok_ozempic_to_tables, normalize_grok_ozempic_dir, normalize_grok_ozempic_bundle_to_tables
 
 @testset "GrokOzempic — passing bundle" begin
     fixture = joinpath(@__DIR__, "fixtures", "grok_ozempic", "pass")
