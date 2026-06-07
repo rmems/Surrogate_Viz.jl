@@ -157,10 +157,6 @@ Base.@kwdef struct RunManifest
     saaq_dual_emit::Bool = false
     telemetry_source::String = ""
     routing_mode::String = ""
-    heartbeat_enabled::Bool = false
-    heartbeat_amplitude::Float64 = 0.0
-    heartbeat_period_ticks::Int = 0
-    heartbeat_duty_cycle::Float64 = 0.0
     run_tag::String = ""
     repeat_idx::Int = 0
     repeat_count::Int = 1
@@ -197,9 +193,7 @@ KNOWN_MANIFEST_FIELDS = [
     :run_id, :model_slug, :model_family, :architecture, :checkpoint_path,
     :routing_tensor_name, :synapse_source, :checkpoint_format, :prompt_embedding_source,
     :prompt_profile, :prompt_text, :ticks, :saaq_rule, :saaq_primary_rule,
-    :saaq_dual_emit, :validation_status, :error, :heartbeat_enabled,
-    :heartbeat_amplitude, :heartbeat_period_ticks, :heartbeat_duty_cycle,
-    :heartbeat_phase_offset_ticks, :telemetry_source, :telemetry_csv_path,
+    :saaq_dual_emit, :validation_status, :error, :telemetry_source, :telemetry_csv_path,
     :telemetry_row_count, :wraparound_enabled, :wraparound_loops,
 :ticks_effective, :run_dir, :output_root, :repeat_idx,
     :repeat_count, :cwd_routing_csv_contaminated, :run_tag, :routing_mode,
@@ -263,10 +257,6 @@ function load_saaq_bundle(path::AbstractString)::SaaqBundle
         saaq_dual_emit = get(raw_manifest, "saaq_dual_emit", false),
         telemetry_source = get(raw_manifest, "telemetry_source", ""),
         routing_mode = get(raw_manifest, "routing_mode", ""),
-        heartbeat_enabled = get(raw_manifest, "heartbeat_enabled", false),
-        heartbeat_amplitude = get(raw_manifest, "heartbeat_amplitude", 0.0),
-        heartbeat_period_ticks = get(raw_manifest, "heartbeat_period_ticks", 0),
-        heartbeat_duty_cycle = get(raw_manifest, "heartbeat_duty_cycle", 0.0),
         run_tag = get(raw_manifest, "run_tag", ""),
         repeat_idx = get(raw_manifest, "repeat_idx", 0),
         repeat_count = get(raw_manifest, "repeat_count", 1),
