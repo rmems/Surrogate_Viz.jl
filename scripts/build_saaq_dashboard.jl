@@ -16,6 +16,10 @@ function _heatmap_latent_path(
     model_family, telemetry_source, heartbeat_enabled, run_id;
     import_root::AbstractString = SV.IMPORT_ROOT,
 )
+    # Grok Build / GH#38: Legacy support for old heartbeat-enabled paired runs.
+    # For modern sviz_* runs (no heartbeat_enabled column), the caller should
+    # skip or use condition directly. We keep the old path logic only when the
+    # flag is explicitly present.
     condition_label = heartbeat_enabled ? "heartbeat_on" : "heartbeat_off"
     SV.validate_path_component("model_family", model_family)
     SV.validate_path_component("telemetry_source", telemetry_source)
@@ -40,13 +44,25 @@ function compute_heatmap_data(
     real_df = filter(:run_status => ==("real"), runs_df)
     isempty(real_df) && return heatmap_data
 
+    # Grok Build / GH#38: Support both legacy (heartbeat_enabled column present)
+    # and modern sviz runs (use condition or skip paired delta heatmap).
+    has_heartbeat_col = hasproperty(real_df, :heartbeat_enabled)
+
     models = unique(real_df[!, :model_family])
     for model in models
         model_df = filter(:model_family => ==(model), real_df)
         for repeat_idx in unique(model_df[!, :repeat_idx])
             repeat_df = filter(:repeat_idx => ==(repeat_idx), model_df)
-            off_df_raw = filter(:heartbeat_enabled => ==(false), repeat_df)
-            on_df_raw  = filter(:heartbeat_enabled => ==(true),  repeat_df)
+
+            if has_heartbeat_col
+                off_df_raw = filter(:heartbeat_enabled => ==(false), repeat_df)
+                on_df_raw  = filter(:heartbeat_enabled => ==(true),  repeat_df)
+            else
+                # Modern runs: no paired heartbeat on/off. Skip the delta heatmap
+                # for this repeat (the run summary table is still produced).
+                # If you want per-condition heatmaps for sviz_* profiles, extend here.
+                continue
+            end
             (isempty(off_df_raw) || isempty(on_df_raw)) && continue
 
             has_slug = hasproperty(real_df, :model_slug)
@@ -273,7 +289,8 @@ function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heat
         run_id = string(row.run_id)
         status = string(row.run_status)
         status_class = "badge-$(status)"
-        hb_label = row.heartbeat_enabled ? "&nbsp;<span style='color:#6a7fe8'>♦</span>" : ""
+        # Grok Build / GH#38: only show legacy heartbeat badge if the column exists
+        hb_label = (hasproperty(row, :heartbeat_enabled) && row.heartbeat_enabled) ? "&nbsp;<span style='color:#6a7fe8'>♦</span>" : ""
 
         run_metrics = filter(:run_id => ==(run_id), metrics_df)
         n_run_metrics = nrow(run_metrics)

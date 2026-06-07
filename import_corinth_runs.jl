@@ -86,11 +86,21 @@ function main()
     force = force_import_enabled()
 
     mkpath(IMPORT_ROOT)
-    imported_rows = [import_run!(run; force = force) for run in runs]
+    seen = Set{String}()
+    imported_rows = []
+    for run in runs
+        rid = run["id"]
+        if rid in seen
+            @warn "Skipping duplicate run_id in selected_runs.toml: $(rid) (condition=$(run["condition"]))"
+            continue
+        end
+        push!(seen, rid)
+        push!(imported_rows, import_run!(run; force = force))
+    end
     index_df = DataFrame(imported_rows)
     CSV.write(INDEX_PATH, index_df)
 
-    println("Imported $(nrow(index_df)) corinth-canal runs into $(IMPORT_ROOT)")
+    println("Imported $(nrow(index_df)) corinth-canal runs into $(IMPORT_ROOT) (deduped by run_id)")
     println("Wrote import index to $(INDEX_PATH)")
     println("Import mode: $(force ? "force overwrite enabled" : "keep existing files")")
     println("Note: imports prefer symlinks and fall back to copies if symlinks are unavailable")
