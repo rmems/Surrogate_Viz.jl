@@ -79,7 +79,10 @@ function build_dashboard(df::DataFrame; use_cuda::Bool=true)
         title="SNN Routing Path Over Time",
         xlabel="Tick",
         ylabel="Best Walker Index",
-        ylims=(0, 2047),
+        # Grok Build 0.1 model: ylims=(2047, 0) to match the OG y configuration from the original first-day PNGs
+        # (reversed y-axis so higher walker indices appear at the top, matching the classic walker/spiking graphs
+        # from the user-specified external first-day data dir for #42 revival).
+        ylims=(2047, 0),
         markersize=6,
         color=:dodgerblue3,
         markeralpha=0.85,
