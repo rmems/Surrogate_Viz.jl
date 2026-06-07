@@ -49,7 +49,6 @@ function load_latent_data(path::AbstractString)
         :timestamp_ms,
         :avg_pop_firing_rate_hz,
         :routing_entropy,
-        :condition_signal,
         :gpu_temp_c,
         :gpu_power_w,
         :cpu_tctl_c,
@@ -151,9 +150,8 @@ function build_dashboard(latent_df::DataFrame, tick_df::DataFrame)
         markersize = 4,
         xlabel = "Tick",
         ylabel = "Best Walker",
-        title = "Walker Activity vs Control Signal",
+        title = "Walker Activity",
     )
-    plot!(p3, tick_df.tick, walker_overlay; label = "condition_signal (scaled)", color = :crimson, linestyle = :dash)
 
     p4 = plot(
         latent_df.tick,

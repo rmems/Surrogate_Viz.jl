@@ -12,21 +12,6 @@ using CSV
 using DataFrames
 import Dates
 
-function _heatmap_latent_path(
-    model_family, telemetry_source, heartbeat_enabled, run_id;
-    import_root::AbstractString = SV.IMPORT_ROOT,
-)
-    # Grok Build / GH#38: Legacy support for old heartbeat-enabled paired runs.
-    # For modern sviz_* runs (no heartbeat_enabled column), the caller should
-    # skip or use condition directly. We keep the old path logic only when the
-    # flag is explicitly present.
-    condition_label = heartbeat_enabled ? "heartbeat_on" : "heartbeat_off"
-    SV.validate_path_component("model_family", model_family)
-    SV.validate_path_component("telemetry_source", telemetry_source)
-    SV.validate_path_component("run_id", run_id)
-    joinpath(import_root, model_family, telemetry_source, condition_label, run_id, "latent_telemetry.csv")
-end
-
 function delta_color(v, vmax)
     isnan(v) && return "#ffffff"
     v == 0 && return "#e0e0e0"
@@ -40,85 +25,15 @@ function compute_heatmap_data(
     import_root::AbstractString = SV.IMPORT_ROOT,
     bucket_count::Int = 20,
 )
-    heatmap_data = Dict{String,Vector{Float64}}()
-    real_df = filter(:run_status => ==("real"), runs_df)
-    isempty(real_df) && return heatmap_data
-
-    # Grok Build / GH#38: Support both legacy (heartbeat_enabled column present)
-    # and modern sviz runs (use condition or skip paired delta heatmap).
-    has_heartbeat_col = hasproperty(real_df, :heartbeat_enabled)
-
-    models = unique(real_df[!, :model_family])
-    for model in models
-        model_df = filter(:model_family => ==(model), real_df)
-        for repeat_idx in unique(model_df[!, :repeat_idx])
-            repeat_df = filter(:repeat_idx => ==(repeat_idx), model_df)
-
-            if has_heartbeat_col
-                off_df_raw = filter(:heartbeat_enabled => ==(false), repeat_df)
-                on_df_raw  = filter(:heartbeat_enabled => ==(true),  repeat_df)
-            else
-                # Modern runs: no paired heartbeat on/off. Skip the delta heatmap
-                # for this repeat (the run summary table is still produced).
-                # If you want per-condition heatmaps for sviz_* profiles, extend here.
-                continue
-            end
-            (isempty(off_df_raw) || isempty(on_df_raw)) && continue
-
-            has_slug = hasproperty(real_df, :model_slug)
-            tel_col   = :telemetry_source
-
-            slug_off = has_slug && !ismissing(off_df_raw[1, :model_slug]) && !isempty(off_df_raw[1, :model_slug]) ? off_df_raw[1, :model_slug] : off_df_raw[1, :model_family]
-            slug_on  = has_slug && !ismissing(on_df_raw[1, :model_slug])  && !isempty(on_df_raw[1, :model_slug])  ? on_df_raw[1, :model_slug]  : on_df_raw[1, :model_family]
-
-            path_off = _heatmap_latent_path(slug_off, off_df_raw[1, tel_col], false, off_df_raw[1, :run_id]; import_root)
-            path_on  = _heatmap_latent_path(slug_on,  on_df_raw[1, tel_col],  true,  on_df_raw[1, :run_id];  import_root)
-            (isfile(path_off) && isfile(path_on)) || continue
-
-            df_off = CSV.read(path_off, DataFrame)
-            df_on  = CSV.read(path_on,  DataFrame)
-
-            detected_col = try
-                SV.detect_delta_column([df_off, df_on])
-            catch
-                nothing
-            end
-            detected_col === nothing && continue
-
-            joined = DataFrame()
-            try
-                joined, _ = SV.pairwise_summary(df_off, df_on, detected_col, nothing)
-            catch e
-                (e isa ErrorException && occursin("overlapping timestamps", e.msg)) || rethrow(e)
-                @debug "Skipping model=$(model) repeat=$(repeat_idx): no overlapping timestamps"
-                continue
-            end
-            nrow(joined) == 0 && continue
-            deltas_col = :delta_on_minus_off
-            if !hasproperty(joined, deltas_col); continue; end
-            deltas = collect(skipmissing(joined[!, deltas_col]))
-            deltas = Float64.(deltas)
-            isempty(deltas) && continue
-
-            n = length(deltas)
-            nb = bucket_count
-            buckets = fill(NaN, nb)
-            counts  = zeros(Int, nb)
-            for (i, val) in enumerate(deltas)
-                b = min(nb, (i - 1) * nb ÷ n + 1)
-                buckets[b] += val
-                counts[b]  += 1
-            end
-            for b in 1:nb
-                if counts[b] > 0
-                    buckets[b] /= counts[b]
-                end
-            end
-            key = "$(model) [r$(repeat_idx)]"
-            heatmap_data[key] = buckets
-        end
-    end
-    return heatmap_data
+    # Completely removed all heartbeat support per user request ("we removing everything over heartbeat").
+    # The previous paired "heartbeat_on / heartbeat_off" delta heatmap logic has been excised.
+    # This function now returns empty. The paired treatment/baseline heatmap was specific
+    # to the old heartbeat control signal experiments.
+    #
+    # For current sviz_* prompt profile experiments, any per-condition analysis would need
+    # a different implementation (grouping by the "condition" column instead of heartbeat_enabled).
+    # Heatmap generation is skipped entirely to avoid enabling or referencing heartbeat.
+    return Dict{String,Vector{Float64}}()
 end
 
 function build_heatmap_panel(heatmap_data; n_buckets=20)
@@ -289,8 +204,7 @@ function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heat
         run_id = string(row.run_id)
         status = string(row.run_status)
         status_class = "badge-$(status)"
-        # Grok Build / GH#38: only show legacy heartbeat badge if the column exists
-        hb_label = (hasproperty(row, :heartbeat_enabled) && row.heartbeat_enabled) ? "&nbsp;<span style='color:#6a7fe8'>♦</span>" : ""
+        # Heartbeat support fully removed. No hb_label.
 
         run_metrics = filter(:run_id => ==(run_id), metrics_df)
         n_run_metrics = nrow(run_metrics)
@@ -298,7 +212,7 @@ function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heat
 
         write(buf, "<tr>")
         write(buf, "<td><code>$(run_id)</code></td>")
-        write(buf, "<td><span class='badge $(status_class)'>$(status)</span>$(hb_label)</td>")
+        write(buf, "<td><span class='badge $(status_class)'>$(status)</span></td>")
         write(buf, "<td>$(fmt_val(row.model_family))</td>")
         write(buf, "<td><code>$(fmt_val(row.saaq_formula_version))</code></td>")
         write(buf, "<td><code>$(fmt_val(row.telemetry_source))</code></td>")

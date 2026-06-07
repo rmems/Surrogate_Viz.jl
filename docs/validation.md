@@ -87,7 +87,7 @@ julia --project=. scripts/ingest_grok_ozempic_bundles.jl test/fixtures/grok_ozem
 
 | Fixture | Run Status | Coverage |
 |---|---|---|
-| `successful_synthetic/` | `synthetic` | Complete manifest + summary, heartbeat on |
+| `successful_synthetic/` | `synthetic` | Complete manifest + summary |
 | `skipped_run/` | `skipped` | Missing metrics (ticks_completed=0) |
 | `failed_run/` | `failed` | error field set, validation_status=failed |
 | `missing_optional/` | `real` | Many optional manifest fields absent |
