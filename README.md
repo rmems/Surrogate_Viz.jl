@@ -53,10 +53,11 @@ Models 6–9 were onboarded in [corinth-canal#68](https://github.com/rmems/corin
 Select the active model at runtime with the `MODEL` env var, e.g.
 `MODEL="qwen3-moe-i1-GGUF IQ3_M.gguf" julia plot_saaq1_5_validation.jl`.
 
-> **Note on terminology:** The simulator emits a `condition_signal` column and
-> uses `baseline` / `treatment` as condition labels in the run manifest.
-> Plot titles and report headers use neutral terms (*control-off* /
-> *control-on*, *paired-run*).
+> **Note on terminology (historical):** Older experiments used a `condition_signal`
+> (aka heartbeat control) with `baseline` / `treatment` labels. The current sviz
+> prompt-profile runs and telemetry do not emit `condition_signal`. Plot/report
+> code has been updated accordingly (Grok Build cleanup). Old full_lineup scripts
+> remain for historical paired-run analysis only.
 
 ## Project Structure
 
@@ -86,7 +87,7 @@ Surrogate_Viz.jl/
 ├── docs/
 │   └── validation.md             # Smoke-test commands for CI
 ├── data/                         # (gitignored) model checkpoints + imported runs
-│   ├── olmoe-1b-7b/              # .gitkeep (GGUF, default)
+│   ├── olmoe-1b-7b/              # .gitkeep (GGUF, default) — placeholder only
 │   ├── qwen3-moe-i1-GGUF IQ3_M.gguf/   # .gitkeep (GGUF)
 │   ├── gemma-4-26B-A4B-it-UD-IQ4_NL.gguf/   # .gitkeep (GGUF)
 │   ├── DeepSeek-Coder-V2-Lite-Instruct-Q6_K_L.gguf/   # .gitkeep (GGUF)
@@ -95,6 +96,10 @@ Surrogate_Viz.jl/
 │   ├── glm46v_flash_q8_0/        # .gitkeep (GGUF)
 │   ├── kimi_vl_a3b_q6_k/         # .gitkeep (GGUF)
 │   └── marco_nano_base_q8_0/     # .gitkeep (GGUF)
+│   # Decision (GH#38 / Grok Build): These are intentionally empty gitignored
+│   # placeholders for large GGUF files. Active imported telemetry lives in
+│   # data/corinth_runs/ (populated by import_corinth_runs.jl using modern
+│   # condition labels). Historical stray heartbeat subdirs were cleaned.
 ├── outputs/                      # (gitignored) generated dashboards + SR results
 │   ├── olmoe-1b-7b/
 │   │   ├── dashboards/           # .gitkeep
@@ -294,15 +299,13 @@ runs_df, metrics_df, issues_df = normalize_grok_ozempic_dir("path/to/bundles/")
 `outputs/<model>/{dashboards,sr_results}/`. Never edit simulator code or
 commit raw simulator CSVs from this side.
 
-## Full Lineup Comparison
+## Full Lineup Comparison (legacy)
 
-`compare_full_lineup_saaq1_5.jl` reads `data/selected_runs.toml` for entries
-tagged `campaign = "full_lineup"`, repeat-0, with telemetry source
-`csv_re4_path_tracing_telemetry` and rule `SaaqV1_5SqrtRate`. For each
-available model slug (see model table above) it pairs the control-off vs
-control-on runs, writes one PNG per model and a single combined markdown
-report under `outputs/full_lineup/`. Models without complete paired runs
-are gracefully skipped with a warning.
+`compare_full_lineup_saaq1_5.jl` is retained for historical "full_lineup"
+heartbeat-paired runs (campaign = "full_lineup", control-off vs control-on).
+Current selected runs use sviz_* prompt conditions instead. The script
+errors early if no matching legacy runs are present (to avoid empty PNGs).
+See outputs/full_lineup/ for prior results. (Updated during Grok Build cleanup.)
 
 ```
 julia --project=. import_corinth_runs.jl
