@@ -1,0 +1,38 @@
+version: '3.8'
+
+# Docker Compose for Surrogate_Viz.jl GPU self-hosted runner
+# Run with: docker compose up -d
+# Make sure nvidia-container-toolkit is installed on host.
+# Grok Build 0.1 model: provides isolated, reproducible GPU env for cuda-visuals job.
+
+services:
+  surrogate-viz-gpu-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: surrogate-viz-gpu-runner:latest
+    container_name: surrogate-viz-sm120-gpu
+    restart: unless-stopped
+    environment:
+      - GITHUB_URL=https://github.com/rmems/Surrogate_Viz.jl
+      - RUNNER_NAME=Surrogate-Viz-sm120-GPU-docker
+      - RUNNER_LABELS=self-hosted,gpu,sm120,julia-cuda
+      # GITHUB_TOKEN loaded from env_file (never commit the real token)
+    env_file:
+      - runner.env
+    # GPU passthrough (requires nvidia-container-toolkit + --gpus all equivalent)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    # Optional: persist work dir (useful for debugging)
+    # volumes:
+    #   - ./work:/home/runner/_work
+    # For interactive debugging:
+    #   - type: bind
+    #     source: /home/raulmc/.secrets
+    #     target: /home/runner/.secrets
+    #     read_only: true
