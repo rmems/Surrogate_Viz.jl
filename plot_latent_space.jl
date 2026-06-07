@@ -46,7 +46,8 @@ function output_path()
     if occursin("OMLoE", inp) || occursin("olmoe", inp)
         return "map_olmoe_math_logic.png"
     end
-    return "map__OMLoE_math_logic.png"
+    # Grok Build 0.1 model: return canonical OG name to match first-day PNGs and docs (fixed inconsistent naming per review).
+    return "map_olmoe_math_logic.png"
 end
 
 function load_tick_data(path::AbstractString)
@@ -91,30 +92,24 @@ function build_dashboard(df::DataFrame; use_cuda::Bool=true)
         legend=false,
     )
 
-    # Density panel — now can use the pure-Julia CUDA kernel when available (sm_120 / RTX 5080 target).
-    # This is the hook that will call the new kernel added in kernels.jl (inspired by myelin-accelerator
-    # cu/spiking_network + vector_similarity patterns for efficient binning/reductions on Blackwell).
-    p2 = try
-        if use_cuda && isdefined(Main, :cuda_best_walker_density_histogram)
-            # Will be provided by `using Surrogate_Viz` + the new kernel (or included below in a full run).
-            # For the script standalone we fall through to the CPU version if the symbol is not there yet.
-            histogram(
-                df[!, :best_walker];
-                title="Best Walker Firing Density (CUDA path when available)",
-                xlabel="Best Walker Index",
-                ylabel="Count",
-                bins=0:64:2048,
-                xlims=(0, 2047),
-                color=:tomato,
-                alpha=0.8,
-                linecolor=:black,
-                linewidth=1.0,
-                legend=false,
-            )
-        else
-            rethrow()
-        end
-    catch
+    # Density panel — use the Surrogate_Viz API for CUDA or CPU fallback (Grok Build 0.1 model).
+    # This ensures the CUDA kernel is actually used when available (fixed per review).
+    p2 = if use_cuda && isdefined(SV, :cuda_best_walker_density_histogram)
+        edges, counts = SV.walker_density_bins_and_counts(df[!, :best_walker]; n_bins=32, max_walker=2047)
+        bar(
+            edges[1:end-1],
+            counts;
+            title="Best Walker Firing Density (CUDA path)",
+            xlabel="Best Walker Index",
+            ylabel="Count",
+            xlims=(0, 2047),
+            color=:tomato,
+            alpha=0.8,
+            linecolor=:black,
+            linewidth=1.0,
+            legend=false,
+        )
+    else
         histogram(
             df[!, :best_walker];
             title="Best Walker Firing Density",

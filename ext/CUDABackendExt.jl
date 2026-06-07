@@ -61,6 +61,19 @@ function _compute_delta_per_tick_cuda(timestamps::AbstractVector, features::Abst
     return timestamps[2:end], Array(deltas_gpu)
 end
 
+# Grok Build 0.1 model: top-level kernel to avoid closure/Box issues on GPU (fixed per review).
+function hist_kernel!(walkers, hist, bin_size_f, n_items, n_bins)
+    i = (blockIdx().x - 1) * blockDim().x + threadIdx().x
+    if i <= n_items
+        w = walkers[i]
+        if w >= 0 && w <= max_walker  # bounds check to prevent out-of-bounds (fixed per review)
+            b = clamp(floor(Int32, w / bin_size_f), Int32(0), Int32(n_bins - 1)) + Int32(1)
+            CUDA.@atomic hist[b] += Int32(1)
+        end
+    end
+    return
+end
+
 function _cuda_best_walker_density_histogram(
     best_walkers::AbstractVector{Int};
     n_bins::Int=32,
@@ -74,18 +87,9 @@ function _cuda_best_walker_density_histogram(
 
     bin_size = (max_walker + 1) / n_bins
 
-    function hist_kernel(walkers, hist, bin_size_f, n_items)
-        i = (blockIdx().x - 1) * blockDim().x + threadIdx().x
-        if i <= n_items
-            w = walkers[i]
-            b = clamp(floor(Int, w / bin_size_f), 0, n_bins - 1) + 1
-            CUDA.@atomic hist[b] += Int32(1)
-        end
-    end
-
     threads = 256
     blocks = min(1024, cld(n, threads))
-    CUDA.@cuda threads = threads blocks = blocks hist_kernel(d_walkers, d_hist, Float32(bin_size), n)
+    CUDA.@cuda threads = threads blocks = blocks hist_kernel!(d_walkers, d_hist, Float32(bin_size), n, n_bins)
 
     return Int.(Array(d_hist))
 end
