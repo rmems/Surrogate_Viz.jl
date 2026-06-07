@@ -16,9 +16,12 @@ using Plots
 
 const REPO_ROOT = @__DIR__
 const SELECTED_RUNS_PATH = joinpath(REPO_ROOT, "data", "selected_runs.toml")
-const OUTPUT_DIR = joinpath(REPO_ROOT, "outputs", "olmoe-1b-7b", "dashboards")
+const OUTPUT_DIR = joinpath(REPO_ROOT, "outputs", "olmoe_1b_7b_f16", "dashboards")
 const REPORT_PATH = joinpath(OUTPUT_DIR, "saaq1_5_re4_condition_comparison.md")
 const PLOT_PATH = joinpath(OUTPUT_DIR, "saaq1_5_re4_condition_comparison.png")
+# NOTE (Grok Build 0.1 model, GH#40/MET-115): Updated OUTPUT_DIR to current slug to be consistent
+# with hygiene cleanup (prevents recreating deleted "olmoe-1b-7b" placeholder-style dir).
+# This remains a legacy script for historical baseline pair data only (guarded from #38 work).
 
 function selected_repeat_idx()
     if !isempty(ARGS)

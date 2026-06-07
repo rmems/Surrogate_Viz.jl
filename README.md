@@ -33,25 +33,33 @@ julia --project=. scripts/ingest_grok_ozempic_bundles.jl test/fixtures/grok_ozem
 
 ## MoE Target Models
 
-Current experimentation targets nine mixture-of-experts instructor
-models, organized by corinth-canal lineup slug:
+Current experimentation targets the following active mixture-of-experts models
+(organized by corinth-canal lineup slug from selected_runs.toml). GGUF-style
+placeholder directories under `data/` and top-level `outputs/` were removed
+as part of the GH#40/MET-115 hygiene cleanup (Grok Build 0.1 model) — only
+active slugs under `data/corinth_runs/<slug>/` and `outputs/<slug>/` remain.
 
-| # | corinth-canal slug | GGUF / local name |
-|---|-------------------|-------------------|
-| 1 | `olmoe_baseline` | `olmoe-1b-7b` (default) |
-| 2 | `qwen3_moe_i1_iq3_m` | `qwen3-moe-i1-GGUF IQ3_M.gguf` |
-| 3 | `gemma4_26b_a4b_iq4_nl` | `gemma-4-26B-A4B-it-UD-IQ4_NL.gguf` |
-| 4 | `deepseek_coder_v2_lite_q6_k_l` | `DeepSeek-Coder-V2-Lite-Instruct-Q6_K_L.gguf` |
-| 5 | `llama_3_2_dark_champion_q5_k_m` | `L3.2-8X3B-MOE-Dark-Champion-Inst-18.4B-uncen-ablit_D_AU-q5_k_m.gguf` |
-| 6 | `zaya1_8b_q8_0` | Zaya 1 (Abiray/ZAYA1-8B-GGUF) |
-| 7 | `glm46v_flash_q8_0` | GLM-4.6V-Flash |
-| 8 | `kimi_vl_a3b_q6_k` | Kimi-VL-A3B-Instruct |
-| 9 | `marco_nano_base_q8_0` | Marco-Nano-Base |
+| # | corinth-canal slug          | Notes |
+|---|-----------------------------|-------|
+| 1 | `olmoe_1b_7b_f16`           | (was olmoe_baseline / olmoe-1b-7b placeholder) |
+| 2 | `qwen3_moe_iq3_m`           | (was qwen3_moe_i1_iq3_m / qwen3-moe-i1-GGUF placeholder) |
+| 3 | `gemma4_26b_a4b_iq4_nl`     | (was gemma-4-26B-A4B-it-UD-IQ4_NL.gguf placeholder) |
+| 4 | `deepseek_coder_v2_lite_q6_k_l` | |
+| 5 | `llama_3_2_dark_champion_q5_k_m` | |
+| 6 | `zaya1_8b_q8_0`             | |
+| 7 | `kimi_vl_a3b_q6_k`          | |
+| 8 | `marco_nano_base_q8_0`      | (qwen3moe family) |
 
-Models 6–9 were onboarded in [corinth-canal#68](https://github.com/rmems/corinth-canal/pull/68).
+`glm46v_flash_q8_0` was an unused placeholder (produced no results in current lineup) and was removed.
 
 Select the active model at runtime with the `MODEL` env var, e.g.
-`MODEL="qwen3-moe-i1-GGUF IQ3_M.gguf" julia plot_saaq1_5_validation.jl`.
+`MODEL="qwen3_moe_iq3_m" julia plot_saaq1_5_validation.jl`.
+
+> **Note on terminology (historical):** Older experiments used a `condition_signal`
+> (aka heartbeat control) with `baseline` / `treatment` labels. The current sviz
+> prompt-profile runs and telemetry do not emit `condition_signal`. Plot/report
+> code has been updated accordingly (Grok Build cleanup). Old full_lineup scripts
+> remain for historical paired-run analysis only. GGUF placeholders were cleaned in GH#40.
 
 > **Note on terminology (historical):** Older experiments used a `condition_signal`
 > (aka heartbeat control) with `baseline` / `treatment` labels. The current sviz
@@ -98,15 +106,19 @@ Surrogate_Viz.jl/
 │   # live only under clean slugs matching selected_runs / corinth_runs (e.g.
 │   # qwen3_moe_iq3_m/, deepseek_coder_v2_lite_q6_k_l/, etc.).
 │   ├── olmoe_1b_7b_f16/
+│   │   ├── dashboards/           # created by plot_saaq1_5_validation.jl etc.
 │   │   └── sr_results/
 │   ├── qwen3_moe_iq3_m/
-│   │   └── sr_results/           # (dashboards/ populated as Qwen hygiene part of #40)
+│   │   ├── dashboards/           # (populated as Qwen hygiene part of #40)
+│   │   └── sr_results/
 │   ├── gemma4_26b_a4b_iq4_nl/
 │   │   ├── dashboards/
 │   │   └── sr_results/
 │   ├── deepseek_coder_v2_lite_q6_k_l/
+│   │   ├── dashboards/
 │   │   └── sr_results/
 │   ├── llama_3_2_dark_champion_q5_k_m/
+│   │   ├── dashboards/
 │   │   └── sr_results/
 │   ├── zaya1_8b_q8_0/
 │   │   ├── dashboards/

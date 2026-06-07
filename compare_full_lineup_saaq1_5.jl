@@ -28,16 +28,18 @@ const EQUATION_SOURCE = "outputs/20260414_194227_v2pNMk/hall_of_fame.csv"
 const REPEAT_IDX = 0
 
 const MODEL_ORDER = [
-    "olmoe_baseline",
-    "qwen3_moe_i1_iq3_m",
+    "olmoe_1b_7b_f16",
+    "qwen3_moe_iq3_m",
     "gemma4_26b_a4b_iq4_nl",
     "deepseek_coder_v2_lite_q6_k_l",
     "llama_3_2_dark_champion_q5_k_m",
-    # Onboarded in corinth-canal LLM-models-onboarding PR #68
     "zaya1_8b_q8_0",
-    "glm46v_flash_q8_0",
     "kimi_vl_a3b_q6_k",
     "marco_nano_base_q8_0",
+    # NOTE (Grok Build 0.1 model, GH#40/MET-115): Updated to current active slugs from selected_runs.toml
+    # (old names like "olmoe_baseline", "qwen3_moe_i1_iq3_m", "glm46v..." removed to match hygiene cleanup
+    # and prevent recreating deleted GGUF placeholder dirs). This script remains legacy/historical for
+    # old full_lineup data only (see #38 work); it will error on current sviz_* runs.
 ]
 
 function load_selected_runs(path::AbstractString)

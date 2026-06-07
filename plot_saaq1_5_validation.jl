@@ -38,8 +38,31 @@ function default_dashboard_path()
     return joinpath(dir, "saaq1_5_validation_dashboard.png")
 end
 
-latent_input_path() = get(ARGS, 1, joinpath(@__DIR__, "data", model_name(), "snn_latent_telemetry.csv"))
-tick_input_path() = get(ARGS, 2, joinpath(@__DIR__, "data", model_name(), "tick_telemetry.txt"))
+# NOTE (Grok Build 0.1 model, GH#40 / MET-115 hygiene cleanup):
+# Old flat data/<model>/ placeholder dirs were deleted. Active telemetry lives
+# under data/corinth_runs/<slug>/csv_re4_path_tracing_telemetry/sviz_*/<run_id>/...
+# Always prefer explicit paths for current sviz runs. The defaults below now
+# error with guidance if no args provided (addresses bot feedback on broken defaults).
+function latent_input_path()
+    if length(ARGS) >= 1
+        return ARGS[1]
+    end
+    error("No latent telemetry path provided as first argument.\n" *
+          "Post GGUF placeholder cleanup (see plan and GH#40/MET-115), use explicit path e.g.\n" *
+          "data/corinth_runs/<slug>/csv_re4_path_tracing_telemetry/sviz_math_logic/<run_id>/latent_telemetry.csv\n" *
+          "Old data/<model>/snn_latent_telemetry.csv paths no longer exist.")
+end
+
+function tick_input_path()
+    if length(ARGS) >= 2
+        return ARGS[2]
+    end
+    error("No tick telemetry path provided as second argument.\n" *
+          "Post GGUF placeholder cleanup (see plan and GH#40/MET-115), use explicit path e.g.\n" *
+          "data/corinth_runs/<slug>/csv_re4_path_tracing_telemetry/sviz_math_logic/<run_id>/tick_telemetry.txt\n" *
+          "Old data/<model>/tick_telemetry.txt paths no longer exist.")
+end
+
 output_path() = length(ARGS) >= 3 ? ARGS[3] : default_dashboard_path()
 
 function load_latent_data(path::AbstractString)
