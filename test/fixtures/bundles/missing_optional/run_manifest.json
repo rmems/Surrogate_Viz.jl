@@ -5,5 +5,5 @@
   "validation_status": "completed",
   "telemetry_source": "csv_re4_path_tracing_telemetry",
   "saaq_rule": "SaaqV1_5SqrtRate",
-  "run_dir": "artifacts/issue-40-local/test-llama-3.2-1b/csv_re4_path_tracing_telemetry/heartbeat_off/test_missing_optional_20260528T120003"
+  "run_dir": "artifacts/issue-40-local/test-llama-3.2-1b/csv_re4_path_tracing_telemetry/test_missing_optional_20260528T120003"
 }

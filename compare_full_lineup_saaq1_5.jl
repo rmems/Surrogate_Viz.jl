@@ -8,6 +8,10 @@ const DatesMod = Base.require(Base.PkgId(Base.UUID("ade2ca70-3891-5945-98fb-dc09
 include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
 const SV = getfield(Main, :Surrogate_Viz)
 
+# NOTE (Grok Build): This script was originally for historical "full_lineup" heartbeat on/off
+# paired runs (control-off / control-on). Current sviz_* experiments use prompt conditions
+# instead. If no matching runs are found it will error early to avoid producing empty PNGs.
+
 ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")
 using Plots

@@ -294,8 +294,6 @@ end
     @test bundle.manifest.model_family == "Llama3.2"
     @test bundle.manifest.saaq_rule == "SaaqV1_5SqrtRate"
     @test bundle.manifest.telemetry_source == "csv_re4_path_tracing_telemetry"
-    @test bundle.manifest.heartbeat_enabled == true
-    @test bundle.manifest.heartbeat_amplitude == 0.85
     @test bundle.metrics.ticks_completed == 512
     @test bundle.metrics.latent_rows == 512
     @test !ismissing(bundle.metrics.mean_tick_elapsed_us)
@@ -328,7 +326,6 @@ end
     bundle = load_saaq_bundle(fixture)
     @test bundle.manifest.run_id == "test_missing_optional_20260528T120003"
     @test bundle.manifest.model_family == "Llama3.2"
-    @test bundle.manifest.heartbeat_enabled == false
     @test bundle.manifest.saaq_rule == "SaaqV1_5SqrtRate"
     @test bundle.metrics.ticks_completed == 512
     @test ismissing(bundle.metrics.latent_rows)
@@ -358,7 +355,6 @@ end
     @test bundle.manifest.run_status == synthetic
     @test bundle.manifest.model_slug == "olmoe-1b-7b"
     @test bundle.manifest.model_family == "olmoe"
-    @test bundle.manifest.heartbeat_enabled == false
     @test isnothing(bundle.manifest.model_descriptor) || !startswith(bundle.manifest.model_descriptor, "[synthetic]")
     @test bundle.manifest.repeat_idx == 1
     @test bundle.manifest.repeat_count == 3
@@ -396,8 +392,6 @@ end
     @test runs_df[1, :run_status] == "synthetic"
     @test runs_df[1, :model_family] == "Llama3.2"
     @test runs_df[1, :saaq_formula_version] == "SaaqV1_5SqrtRate"
-    @test runs_df[1, :heartbeat_enabled] == true
-    @test runs_df[1, :heartbeat_amplitude] == 0.85
 
     @test nrow(metrics_df) >= 4
     metric_names = metrics_df.metric_name
