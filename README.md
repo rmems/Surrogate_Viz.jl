@@ -87,39 +87,28 @@ Surrogate_Viz.jl/
 ├── docs/
 │   └── validation.md             # Smoke-test commands for CI
 ├── data/                         # (gitignored) model checkpoints + imported runs
-│   ├── olmoe-1b-7b/              # .gitkeep (GGUF, default) — placeholder only
-│   ├── qwen3-moe-i1-GGUF IQ3_M.gguf/   # .gitkeep (GGUF)
-│   ├── gemma-4-26B-A4B-it-UD-IQ4_NL.gguf/   # .gitkeep (GGUF)
-│   ├── DeepSeek-Coder-V2-Lite-Instruct-Q6_K_L.gguf/   # .gitkeep (GGUF)
-│   ├── L3.2-8X3B-MOE-Dark-Champion-Inst-18.4B-uncen-ablit_D_AU-q5_k_m.gguf/   # .gitkeep (GGUF)
-│   ├── zaya1_8b_q8_0/            # .gitkeep (GGUF)
-│   ├── glm46v_flash_q8_0/        # .gitkeep (GGUF)
-│   ├── kimi_vl_a3b_q6_k/         # .gitkeep (GGUF)
-│   └── marco_nano_base_q8_0/     # .gitkeep (GGUF)
-│   # Decision (GH#38 / Grok Build): These are intentionally empty gitignored
-│   # placeholders for large GGUF files. Active imported telemetry lives in
-│   # data/corinth_runs/ (populated by import_corinth_runs.jl using modern
-│   # condition labels). Historical stray heartbeat subdirs were cleaned.
+│   # (cleaned per GH#40 / MET-115, Grok Build 0.1 model): unused GGUF-style
+│   # placeholder folders deleted. Active data lives under data/corinth_runs/<slug>/
+│   # (populated by import_corinth_runs.jl) and outputs/<slug>/{dashboards,sr_results}/.
+│   # See .gitignore and the post-#38 hygiene decision for details.
+│   # Only .gitkeep or minimal files were present in the removed placeholders.
 ├── outputs/                      # (gitignored) generated dashboards + SR results
-│   ├── olmoe-1b-7b/
-│   │   ├── dashboards/           # .gitkeep
-│   │   └── sr_results/           # .gitkeep
-│   ├── qwen3-moe-i1-GGUF IQ3_M.gguf/
+│   # Cleaned per GH#40 / MET-115 (Grok Build 0.1 model): GGUF-style dupe
+│   # placeholder folders removed (they contained only .gitkeep). Results now
+│   # live only under clean slugs matching selected_runs / corinth_runs (e.g.
+│   # qwen3_moe_iq3_m/, deepseek_coder_v2_lite_q6_k_l/, etc.).
+│   ├── olmoe_1b_7b_f16/
+│   │   └── sr_results/
+│   ├── qwen3_moe_iq3_m/
+│   │   └── sr_results/           # (dashboards/ populated as Qwen hygiene part of #40)
+│   ├── gemma4_26b_a4b_iq4_nl/
 │   │   ├── dashboards/
 │   │   └── sr_results/
-│   ├── gemma-4-26B-A4B-it-UD-IQ4_NL.gguf/
-│   │   ├── dashboards/
+│   ├── deepseek_coder_v2_lite_q6_k_l/
 │   │   └── sr_results/
-│   ├── DeepSeek-Coder-V2-Lite-Instruct-Q6_K_L.gguf/
-│   │   ├── dashboards/
-│   │   └── sr_results/
-│   ├── L3.2-8X3B-MOE-Dark-Champion-Inst-18.4B-uncen-ablit_D_AU-q5_k_m.gguf/
-│   │   ├── dashboards/
+│   ├── llama_3_2_dark_champion_q5_k_m/
 │   │   └── sr_results/
 │   ├── zaya1_8b_q8_0/
-│   │   ├── dashboards/
-│   │   └── sr_results/
-│   ├── glm46v_flash_q8_0/
 │   │   ├── dashboards/
 │   │   └── sr_results/
 │   ├── kimi_vl_a3b_q6_k/
