@@ -27,10 +27,14 @@ jobs:
   # This job + the kernel implementation + runner hardening = the combined PR for
   # the #43 visuals + #44 (self-hosted Julia CUDA runner) scope.
   #
-  # Grok Build 0.1 model: security is first-class. The self-hosted runner (at
-  # ~/actions-runner/) must never be exposed to arbitrary code from
-  # forks or untrusted clones. The if-guard below + label discipline + review
-  # requirements are mandatory (see GH#44 for the full security spec).
+  # Grok Build 0.1 model: security is first-class. The protected self-hosted
+  # GPU runner must never be exposed to arbitrary code from forks or untrusted
+  # clones. The if-guard below + label discipline + review requirements are
+  # mandatory (see GH#44 for the full security spec).
+  #
+  # Docker is integrated in .github/workflows/ (see docker-build.yml and the
+  # ephemeral docker run in cuda-visuals steps) following corinth-canal
+  # representation for GPU workflows executed by the actions-runner.
   # ---------------------------------------------------------------------------
   cuda-visuals:
     # Only run on the protected self-hosted runner (labels: self-hosted, gpu, sm120, julia-cuda).
