@@ -8,10 +8,10 @@
   "repeat_count": 1,
   "saaq_rule": "SaaqV1_5SqrtRate",
   "validation_status": "skipped",
-  "run_dir": "artifacts/issue-40-local/test-llama-3.2-1b/csv_re4_path_tracing_telemetry/heartbeat_off/test_skipped_20260528T120001",
-  "manifest_path": "artifacts/issue-40-local/test-llama-3.2-1b/csv_re4_path_tracing_telemetry/heartbeat_off/test_skipped_20260528T120001/run_manifest.json",
-  "tick_telemetry_path": "artifacts/issue-40-local/test-llama-3.2-1b/csv_re4_path_tracing_telemetry/heartbeat_off/test_skipped_20260528T120001/tick_telemetry.txt",
-  "latent_telemetry_path": "artifacts/issue-40-local/test-llama-3.2-1b/csv_re4_path_tracing_telemetry/heartbeat_off/test_skipped_20260528T120001/latent_telemetry.csv",
+  "run_dir": "artifacts/issue-40-local/test-llama-3.2-1b/csv_re4_path_tracing_telemetry/test_skipped_20260528T120001",
+  "manifest_path": "artifacts/issue-40-local/test-llama-3.2-1b/csv_re4_path_tracing_telemetry/test_skipped_20260528T120001/run_manifest.json",
+  "tick_telemetry_path": "artifacts/issue-40-local/test-llama-3.2-1b/csv_re4_path_tracing_telemetry/test_skipped_20260528T120001/tick_telemetry.txt",
+  "latent_telemetry_path": "artifacts/issue-40-local/test-llama-3.2-1b/csv_re4_path_tracing_telemetry/test_skipped_20260528T120001/latent_telemetry.csv",
   "metrics": {
     "ticks_completed": 0,
     "latent_rows": 0
