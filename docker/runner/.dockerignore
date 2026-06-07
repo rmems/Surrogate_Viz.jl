@@ -1,9 +1,0 @@
-# Ignore things that shouldn't go into the build context
-.git
-.gitignore
-*.env
-!runner.env.example
-work/
-_diag/
-runner.log
-*.tar.gz

@@ -378,27 +378,4 @@ data or condition-specific behavior is required.
 | `GrokOzempic` | Bundle loading, validation, all 4 fixture types |
 | `GrokOzempicNormalizer` | Normalization, directory ingestion |
 
-## Docker GPU Self-Hosted Runner (for cuda-visuals job)
-
-To make the self-hosted GPU runner more reliable and isolated (especially when the bare `~/actions-runner` stays idle), we provide a Docker-based setup with full NVIDIA GPU passthrough.
-
-See the dedicated guide: [docker/runner/README.md](docker/runner/README.md)
-
-### Quick commands (from repo root)
-
-```bash
-cd docker/runner
-cp runner.env.example runner.env   # edit and add your GITHUB_TOKEN
-docker compose build
-docker compose up -d
-docker compose logs -f
-```
-
-This registers a runner with labels `self-hosted,gpu,sm120,julia-cuda` (matching the `runs-on` in `.github/workflows/julia.yml`).
-
-**Grok Build 0.1 model**: The Docker GPU runner was added specifically to get the local hosted runner (Surrogate-Viz-sm120-GPU) actually claiming and executing the Julia CUDA visual kernel tests and the optional plot step. It uses a recent `nvidia/cuda` base, pre-installs Julia 1.12, and follows the same security and citation practices as the rest of the PR.
-
-After starting the container, push a commit (or re-run the workflow from the Actions tab). The `cuda-visuals` job should now be assigned to the Docker runner instead of staying queued/idle.
-
-You can run the bare-metal runner and the Docker version side-by-side if desired (they just need different names).
 
