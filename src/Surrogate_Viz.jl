@@ -73,6 +73,14 @@ end
 to_float64_vec(col) = Float64[Float64(v) for v in skipmissing(col)]
 to_int_ms(v) = Int(round(Float64(v)))
 
+# Grok Build 0.1 model: re-export the new pure-Julia CUDA visual kernels
+# (walker density histogram etc.) so the revived first-day plot (and any
+# thin first-day wrapper) can call them when CUDA is available on the target
+# (RTX 5080 / sm_120). These are the kernels added for the combined #43 visuals
+# + #44 runner PR. They are 100% Julia (CUDA.jl) — myelin-accelerator is
+# inspiration only.
+export walker_density_bins_and_counts  # safe public API; cuda_... version provided by CUDABackendExt when CUDA present
+
 function summarise_run(df::DataFrame, run::Dict{String,<:Any}, delta_col::Symbol, entropy_col::Union{Nothing,Symbol};
                      backend::ComputeBackend = CPUBackend())
     nrow(df) > 0 || error("summarise_run: empty DataFrame for run id=$(run["id"]) condition=$(run["condition"])")

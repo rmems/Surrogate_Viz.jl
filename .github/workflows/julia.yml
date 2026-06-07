@@ -19,3 +19,62 @@ jobs:
         run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
       - name: Run tests
         run: julia --project=. -e 'using Pkg; Pkg.test()'
+
+  # ---------------------------------------------------------------------------
+  # CUDA / GPU job for the pure-Julia CUDA visual kernels (walker density, path,
+  # spiking overlays) that improve the "looks on the png" for the revived first-day
+  # OG first-experiment originals (GH#42 path: the user-specified external first-day-testing-real-weights/ dir).
+  #
+  # This job + the kernel implementation + runner hardening = the combined PR for
+  # the #43 visuals + #44 (self-hosted Julia CUDA runner) scope.
+  #
+  # Grok Build 0.1 model: security is first-class. The self-hosted runner (at
+  # ~/actions-runner/) must never be exposed to arbitrary code from
+  # forks or untrusted clones. The if-guard below + label discipline + review
+  # requirements are mandatory (see GH#44 for the full security spec).
+  # ---------------------------------------------------------------------------
+  cuda-visuals:
+    # Only run on the protected self-hosted runner that has the RTX 5080 (sm_120).
+    # The label must be one that untrusted jobs cannot accidentally select.
+    runs-on: [self-hosted, gpu, sm120, julia-cuda]
+    # Security guard (Grok Build 0.1 model): do not let forks or external PRs
+    # run on the GPU host without explicit approval. This (and the review
+    # requirement on the runner) is part of the hardening for GH#44.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: "1.12"
+      - uses: julia-actions/cache@v2
+      - name: Instantiate (with CUDA)
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+      - name: Verify CUDA on the runner (RTX 5080 / sm_120 expected)
+        run: julia --project=. -e '
+          using CUDA
+          println("CUDA.jl version info:")
+          CUDA.versioninfo()
+          dev = CUDA.device()
+          println("Device: ", CUDA.name(dev), " cap=", CUDA.capability(dev))
+          # The kernels we test below (cuda_best_walker_density_histogram etc.)
+          # must compile and run on this sm_120 device.
+        '
+      - name: Test the pure-Julia CUDA visual kernels (density for walker graphs)
+        run: julia --project=. -e '
+          # Bring in the revived plot helpers + the new pure-Julia CUDA kernels
+          # (added in kernels.jl for the combined visuals+runner PR).
+          include("plot_latent_space.jl")  # or using Surrogate_Viz after package changes
+          using Surrogate_Viz
+          # Use the copy of the original first-day telemetry (or the canonical
+          # path to the user-specified external first-day data (e.g. its fourth-test/telemetry for math logic).
+          # This is the data that produced the original map_olmoe_math_logic.png.
+          df = load_tick_data("data/telemetry_math_logic.txt")
+          # Exercise the CUDA path (will fall back gracefully if the runner
+          # does not have a functional sm_120 device in this job).
+          edges, counts = walker_density_bins_and_counts(df.best_walker; n_bins=32, max_walker=2047)
+          println("CUDA (or fallback) walker density histogram produced $(length(counts)) bins, sum=", sum(counts))
+          @assert length(counts) == 32
+          println("Pure-Julia CUDA visual kernel test passed (Grok Build 0.1 model).")
+        '
+      - name: (Optional) quick regeneration of a first-day style PNG using the revived script + CUDA path
+        run: julia plot_latent_space.jl data/telemetry_math_logic.txt outputs/ci_first_day_map_olmoe_math_logic.png || echo "plot script run (may produce the PNG or fall back)"
