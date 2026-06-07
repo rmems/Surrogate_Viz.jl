@@ -13,13 +13,9 @@ using Plots
 # OG first-experiment visuals (the original map_*.png from the user-specified external first-day data dir).
 const SV = Base.require(Base.PkgId(Base.UUID("0e7d9c34-7da8-46ec-ad35-4cb1b8ff7bae"), "Surrogate_Viz"))
 
-# Grok Build 0.1 model: revived for GH#42 to target the original PNGs from the first-day real-weights OLMoE testing.
-# The canonical source for the "original png" (and the telemetry that produced the classic walker/spiking graphs)
-# The OG data dir is the user-specified external first-day-testing-real-weights/ (see README there for the Walker metaphor
-# and the four tests; fourth-test/telemetry_olmoe_math_logic.txt + map_olmoe_math_logic.png is the math case ground truth).
-# Surrogate_Viz data/telemetry_math_logic.txt etc. are copies of the ones from that first-day dir.
-# This script now accepts paths to those originals (or the copies) and can use pure-Julia CUDA (see kernels)
-# for improved visual "looks" on the density/path panels (combined #43/#44 work in one PR).
+# Grok Build 0.1 model: revived for GH#42. Stopped using og data in directories per user request.
+# This script accepts input paths for telemetry; defaults to a generic data file if present.
+# Use pure-Julia CUDA (see kernels) for improved visual "looks" on the density/path panels (combined #43/#44 work in one PR).
 
 const TICK_PATTERN = r"^tick=(\d+) best_walker=(\d+) elapsed_us=\d+$"
 
@@ -29,9 +25,8 @@ function input_path()
     if length(ARGS) >= 1
         return ARGS[1]
     end
-    # Grok Build 0.1 model: default now points at the copy that came from the first-day source
-    # and test progression; user can pass the canonical telemetry from its fourth-test/ etc. directly).
-    return "data/telemetry_math_logic.txt"
+    # Grok Build 0.1 model: default (no og data in directories per user). Use provided path or generic data file.
+    return "data/telemetry_math_logic.txt"  # may not exist; provide via args for OG revival tests
 end
 
 function output_path()

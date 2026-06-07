@@ -63,18 +63,14 @@ jobs:
         run: julia --project=. -e '
           # Bring in the revived plot helpers + the new pure-Julia CUDA kernels
           # (added in kernels.jl for the combined visuals+runner PR).
-          include("plot_latent_space.jl")  # or using Surrogate_Viz after package changes
-          using Surrogate_Viz
-          # Use the copy of the original first-day telemetry (or the canonical
-          # path to the user-specified external first-day data (e.g. its fourth-test/telemetry for math logic).
-          # This is the data that produced the original map_olmoe_math_logic.png.
-          df = load_tick_data("data/telemetry_math_logic.txt")
-          # Exercise the CUDA path (will fall back gracefully if the runner
-          # does not have a functional sm_120 device in this job).
+          include("plot_latent_space.jl")
+          using Surrogate_Viz, DataFrames
+          # Stopped using og data in directories per user request. Use synthetic data for kernel test.
+          df = DataFrame(tick=1:100, best_walker=rand(1:2047, 100))
           edges, counts = walker_density_bins_and_counts(df.best_walker; n_bins=32, max_walker=2047)
           println("CUDA (or fallback) walker density histogram produced $(length(counts)) bins, sum=", sum(counts))
           @assert length(counts) == 32
           println("Pure-Julia CUDA visual kernel test passed (Grok Build 0.1 model).")
         '
-      - name: (Optional) quick regeneration of a first-day style PNG using the revived script + CUDA path
-        run: julia plot_latent_space.jl data/telemetry_math_logic.txt outputs/ci_first_day_map_olmoe_math_logic.png || echo "plot script run (may produce the PNG or fall back)"
+      - name: (Optional) quick regeneration of a PNG using the revived script + CUDA path (no og data)
+        run: julia plot_latent_space.jl data/telemetry_math_logic.txt outputs/ci_map.png || echo "plot script run (may produce the PNG or fall back; provide data file if needed)"
