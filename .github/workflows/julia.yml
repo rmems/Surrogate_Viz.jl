@@ -68,19 +68,29 @@ jobs:
           echo "=== with --gpus all (this must succeed or cuda-visuals will fail) ==="
           # Check for the primary tag - if GPU passthrough doesn't work, print prominent warning + host setup instructions (from the big comment below), but do not fail the job.
           # This way preflight always "passes" (for visibility), but logs clearly show if setup is needed.
-          if ! "$DOCKER_BIN" run --rm --gpus all nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi | tee /tmp/gpu_check.log | grep -q 'NVIDIA\|GeForce\|RTX'; then
-            echo "!!! GPU passthrough check FAILED for 13.2.0 image. See output above and /tmp/gpu_check.log (if captured)."
+          # Note: corinth-canal Docker GPU actions often succeed because their inner docker runs are for *build* (nvcc + headers are inside the devel image; no host GPU passthrough required for compilation).
+          # This preflight + cuda-visuals test *runtime* passthrough so CUDA.jl can execute kernels on the host RTX 5080 from inside the container.
+          echo "=== Exact manual repro command (the one you said failed) ==="
+          "$DOCKER_BIN" run --rm --gpus all nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi 2>&1 | tee /tmp/gpu_13_2.log || echo "Command for 13.2 exited non-zero (see output above)"
+          echo "=== Same for 12.8.1 tag ==="
+          "$DOCKER_BIN" run --rm --gpus all nvidia/cuda:12.8.1-devel-ubuntu22.04 nvidia-smi 2>&1 | tee /tmp/gpu_12_8.log || echo "Command for 12.8 exited non-zero (see output above)"
+          echo "=== Trying with explicit --runtime=nvidia (some setups need this) ==="
+          "$DOCKER_BIN" run --rm --gpus all --runtime=nvidia nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi 2>&1 | tee /tmp/gpu_runtime.log || echo "With --runtime=nvidia exited non-zero"
+          if ! cat /tmp/gpu_13_2.log /tmp/gpu_12_8.log /tmp/gpu_runtime.log | grep -q 'NVIDIA\|GeForce\|RTX'; then
+            echo "!!! GPU passthrough check FAILED (no NVIDIA device visible in any of the above runs)."
+            echo "See the full outputs in /tmp/gpu_*.log above."
             echo "Check the host setup instructions in the comment below this step (usermod docker group + nvidia-ctk + restart docker + restart Listener as that user)."
-            cat /tmp/gpu_check.log 2>/dev/null || true
-            echo "!!! Preflight will continue (non-fatal) so cuda-visuals job can also run and show its own detailed logs."
+            echo "Compare the whoami/groups here vs when you ran the docker command manually."
+            echo "If corinth-canal actions work but this fails: corinth mostly does build inside docker (no --gpus needed); here we need runtime device passthrough for CUDA execution."
           else
-            echo "GPU passthrough OK for at least one image tag."
+            echo "GPU passthrough OK for at least one image tag / runtime."
           fi
-          "$DOCKER_BIN" run --rm --gpus all nvidia/cuda:12.8.1-devel-ubuntu22.04 nvidia-smi || true
           echo "=== id / groups / docker socket for the runner user (often the cause of 'docker failed on actions-runner terminal') ==="
           id -u; id -g; groups; ls -l /var/run/docker.sock || true
           echo "=== df and /app permissions (volume mount from the runner checkout) ==="
           df -h /tmp /app || true; ls -ld /app || true
+          echo "=== Docker runtime info ==="
+          "$DOCKER_BIN" info 2>/dev/null | grep -E 'Runtimes:|Default Runtime:|nvidia|Server Version' || true
 
 # ------------------------------------------------------------------------------------
 # Grok Build 0.1 model + host setup (the piece "GPT-5.4 mini could not fix" because it
