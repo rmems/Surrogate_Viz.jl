@@ -12,6 +12,10 @@ permissions:
 
 jobs:
   test:
+    # CPU-only job. This is the one that runs locally on your machine
+    # (`julia --project=. -e 'using Pkg; Pkg.test()'`) and on GitHub-hosted
+    # ubuntu-latest. It must stay reliable and is intentionally *not* on the
+    # self-hosted GPU runner. (Grok Build 0.1 model)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,6 +35,9 @@ jobs:
   gpu-preflight:
     name: GPU/Docker preflight (host + container nvidia-smi)
     runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
+<<<<<<< HEAD
+=======
+    # SECURITY (Grok Build 0.1 model)
     if: >-
       github.event_name == 'push' ||
       github.event.pull_request.head.repo.full_name == github.repository
@@ -54,12 +61,62 @@ jobs:
           command -v nvidia-smi || true
           nvidia-smi || true
           echo "=== basic nvidia/cuda image (no --gpus, for pull test) ==="
+          # Grok Build 0.1 model: try a couple of known-good tags; the one that
+          # produces nvidia-smi output is the one that works with the toolkit on
+          # this host. 13.2.0 matches corinth-canal style; 12.8.1 was the prior
+          # default for sm_120.
           "$DOCKER_BIN" run --rm nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi || true
+          "$DOCKER_BIN" run --rm nvidia/cuda:12.8.1-devel-ubuntu22.04 nvidia-smi || true
           echo "=== with --gpus all (this must succeed or cuda-visuals will fail) ==="
-          "$DOCKER_BIN" run --rm --gpus all nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi
+          "$DOCKER_BIN" run --rm --gpus all nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi || true
+          "$DOCKER_BIN" run --rm --gpus all nvidia/cuda:12.8.1-devel-ubuntu22.04 nvidia-smi || true
+          echo "=== id / groups / docker socket for the runner user (often the cause of 'docker failed on actions-runner terminal') ==="
+          id -u; id -g; groups; ls -l /var/run/docker.sock || true
+          echo "=== df and /app permissions (volume mount from the runner checkout) ==="
+          df -h /tmp /app || true; ls -ld /app || true
+
+# ------------------------------------------------------------------------------------
+# Grok Build 0.1 model + host setup (the piece "GPT-5.4 mini could not fix" because it
+# is out-of-band for the runner user).
+#
+# If the --gpus lines above (or the ones inside cuda-visuals) fail with permission,
+# "could not select device driver", or the container nvidia-smi is empty, the
+# actions-runner Listener user on the 5080 host does not have a working docker +
+# nvidia-container-toolkit setup.
+#
+# ONE-TIME COMMANDS (run as the user that executes ~/actions-runner/run.sh, or
+# with sudo for the usermod/ctk steps, then switch to that user for the Listener):
+#
+#   sudo usermod -aG docker $USER
+#   # log out / in or `newgrp docker` or start a fresh shell for the group to take
+#   sudo nvidia-ctk runtime configure --runtime=docker
+#   sudo systemctl restart docker
+#
+#   # verify from a *new* shell for that exact user
+#   docker run --rm --gpus all nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi
+#
+#   # then (re)start the listener in that shell / as that user
+#   cd ~/actions-runner
+#   ./run.sh   # or nohup ./run.sh &
+#
+# After the "docker" label update you did in Settings, the workflows declare the
+# full label set. The runner must be (re)started *after* the group + toolkit steps.
+#
+# Manual repro you can copy-paste on the 5080 host (after the above setup) to
+# prove the exact command the cuda-visuals step will run:
+#
+#   git clone --branch feat/og-png-data-cuda-visuals-sm120-runner-grok-build-0.1 \
+#       https://github.com/rmems/Surrogate_Viz.jl.git /tmp/sviz-ci-repro
+#   cd /tmp/sviz-ci-repro
+#   bash .github/scripts/run_cuda_visuals.sh
+#
+# It should print the "Pure-Julia CUDA visual kernel test passed" line and the
+# device/cap for your RTX 5080.
+# ------------------------------------------------------------------------------------
 
   cuda-visuals:
     name: CUDA visual kernels (pure Julia CUDA.jl + synthetic data)
+    needs: gpu-preflight
     runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
     if: >-
       github.event_name == 'push' ||

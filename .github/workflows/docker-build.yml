@@ -52,3 +52,8 @@ jobs:
 # Grok Build 0.1 model: This workflow handles PR-time Docker verification only.
 # Publishing is moved to `.github/workflows/docker-publish.yml` so PRs do not
 # show an intentionally skipped publish job.
+#
+# The build runs on the self-hosted GPU runner (labels include docker). It
+# exercises `docker build` of the root Dockerfile (nvidia/cuda + Julia 1.12).
+# If this job fails, check the host docker + nvidia-container-toolkit setup
+# for the runner user (see the big comment in julia.yml gpu-preflight).

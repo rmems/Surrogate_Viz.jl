@@ -154,7 +154,7 @@ compute backend abstraction:
 CUDA is a **weak dependency** — it's never installed unless you explicitly
 add it. If you have a CUDA-capable GPU:
 
-```julia
+```text
 using Pkg
 Pkg.add("CUDA")
 using CUDA  # triggers the CUDABackendExt package extension
@@ -268,7 +268,7 @@ Writes three CSV files to `<output_dir>/`:
 
 ### Programmatic API
 
-```julia
+```text
 using Surrogate_Viz
 
 # Load a single bundle

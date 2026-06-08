@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Grok Build 0.1 model: extracted from the cuda-visuals step so the long
+# docker + Julia + CUDA work is easy to read and to run manually for repro.
+# See the big comment block in the gpu-preflight step of julia.yml for the
+# one-time host setup (usermod + nvidia-ctk) that is almost always the real
+# cause when you see "docker failed on actions-runner terminal".
 
 DOCKER_BIN="$(command -v docker || true)"
 if [ -z "$DOCKER_BIN" ] && [ -x /usr/bin/docker ]; then
@@ -16,7 +21,7 @@ fi
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 apt-get update >/dev/null 2>&1
-apt-get install -y curl ca-certificates git >/dev/null 2>&1
+apt-get install -y curl ca-certificates git xvfb >/dev/null 2>&1 || true
 
 # Install Julia 1.12 (official tarball)
 JULIA_VER=1.12.0
@@ -29,6 +34,10 @@ julia --version
 echo "=== nvidia-smi inside container (GPU passthrough from preflight + --gpus) ==="
 nvidia-smi
 
+<<<<<<< HEAD
+=======
+# Key fix: CUDA is weakdep + CUDABackendExt. Must add explicitly for the test env.
+>>>>>>> ea252d2 (fix: make gpu-preflight + cuda-visuals (and docker build/publish) stop failing on the self-hosted runner (Grok Build 0.1 model))
 julia --project=. -e '
   using Pkg
   Pkg.instantiate()
@@ -37,6 +46,10 @@ julia --project=. -e '
   println("Instantiate + CUDA add + precompile done (Grok Build 0.1 model)")
 '
 
+<<<<<<< HEAD
+=======
+# Verify + assert functional (catches driver/runtime/CUDA.jl issues early)
+>>>>>>> ea252d2 (fix: make gpu-preflight + cuda-visuals (and docker build/publish) stop failing on the self-hosted runner (Grok Build 0.1 model))
 julia --project=. -e '
   using CUDA
   println("CUDA.jl version info:")
@@ -46,8 +59,15 @@ julia --project=. -e '
   println("Device: ", CUDA.name(dev), " cap=", CUDA.capability(dev))
 '
 
+<<<<<<< HEAD
 julia --project=. -e '
   using Surrogate_Viz, DataFrames
+=======
+# The kernels under test (will now take the CUDA path)
+julia --project=. -e '
+  using Surrogate_Viz, DataFrames
+  # Grok Build 0.1 model: synthetic only (no og data per request)
+>>>>>>> ea252d2 (fix: make gpu-preflight + cuda-visuals (and docker build/publish) stop failing on the self-hosted runner (Grok Build 0.1 model))
   df = DataFrame(tick=1:100, best_walker=rand(1:2047, 100))
   edges, counts = walker_density_bins_and_counts(df.best_walker; n_bins=32, max_walker=2047)
   println("CUDA walker density histogram: ", length(counts), " bins, sum=", sum(counts))
@@ -55,5 +75,15 @@ julia --project=. -e '
   println("Pure-Julia CUDA visual kernel test passed (Grok Build 0.1 model).")
 '
 
+<<<<<<< HEAD
 julia plot_latent_space.jl data/telemetry_math_logic.txt /tmp/ci_map.png || echo "plot step done or fell back"
+=======
+# Optional plot (guarded main(), telemetry_math_logic.txt, no og).
+# Headless container: xvfb-run (installed above) or env vars so Plots doesn't
+# try to open a real display and exit non-zero.
+export GKSwstype=100
+export MPLBACKEND=Agg
+xvfb-run -a julia plot_latent_space.jl data/telemetry_math_logic.txt /tmp/ci_map.png \
+  || echo "plot step done or fell back (xvfb or display not critical for CI)"
+>>>>>>> ea252d2 (fix: make gpu-preflight + cuda-visuals (and docker build/publish) stop failing on the self-hosted runner (Grok Build 0.1 model))
 EOF
