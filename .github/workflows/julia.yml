@@ -49,7 +49,9 @@ jobs:
     # Only the protected self-hosted runner.
     runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
     # SECURITY (Grok Build 0.1 model)
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       contents: read
     steps:
@@ -64,15 +66,17 @@ jobs:
           docker info | sed -n '1,80p'
           nvidia-smi || true
           echo "=== basic nvidia/cuda image (no --gpus, for pull test) ==="
-          docker run --rm nvidia/cuda:12.8.1-devel-ubuntu22.04 nvidia-smi || true
+          docker run --rm nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi || true
           echo "=== with --gpus all (this must succeed or cuda-visuals will fail) ==="
-          docker run --rm --gpus all nvidia/cuda:12.8.1-devel-ubuntu22.04 nvidia-smi
+          docker run --rm --gpus all nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi
 
   cuda-visuals:
     name: CUDA visual kernels (pure Julia CUDA.jl + synthetic data)
-    needs: gpu-preflight
+
     runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       contents: read
     steps:
@@ -84,58 +88,4 @@ jobs:
       # in this repo (Pkg.instantiate alone is not enough inside a fresh container).
       # Stopped using og data; synthetic only.
       - name: Run CUDA + Julia 1.12 visual kernel tests inside pinned nvidia/cuda container
-        run: |
-          docker run --rm --gpus all \
-            -v "$PWD:/app" \
-            -w /app \
-            nvidia/cuda:12.8.1-devel-ubuntu22.04 \
-            bash -lc '
-              set -euo pipefail
-              export DEBIAN_FRONTEND=noninteractive
-              apt-get update >/dev/null 2>&1
-              apt-get install -y curl ca-certificates git >/dev/null 2>&1
-
-              # Install Julia 1.12 (official tarball)
-              JULIA_VER=1.12.0
-              curl -fsSL "https://julialang-s3.julialang.org/bin/linux/x64/1.12/julia-${JULIA_VER}-linux-x86_64.tar.gz" -o /tmp/julia.tar.gz
-              tar -xzf /tmp/julia.tar.gz -C /usr/local --strip-components=1
-              rm -f /tmp/julia.tar.gz
-              export PATH=/usr/local/bin:$PATH
-              julia --version
-
-              echo "=== nvidia-smi inside container (GPU passthrough from preflight + --gpus) ==="
-              nvidia-smi
-
-              # Key fix: CUDA is weakdep + CUDABackendExt. Must add explicitly for the test env.
-              julia --project=. -e "
-                using Pkg
-                Pkg.instantiate()
-                Pkg.add(\"CUDA\")
-                Pkg.precompile()
-                println(\"Instantiate + CUDA add + precompile done (Grok Build 0.1 model)\")
-              "
-
-              # Verify + assert functional (catches driver/runtime/CUDA.jl issues early)
-              julia --project=. -e '
-                using CUDA
-                println("CUDA.jl version info:")
-                CUDA.versioninfo()
-                @assert CUDA.functional() "CUDA.functional() false inside container — no usable GPU"
-                dev = CUDA.device()
-                println("Device: ", CUDA.name(dev), " cap=", CUDA.capability(dev))
-              '
-
-              # The kernels under test (will now take the CUDA path)
-              julia --project=. -e '
-                using Surrogate_Viz, DataFrames
-                # Grok Build 0.1 model: synthetic only (no og data per request)
-                df = DataFrame(tick=1:100, best_walker=rand(1:2047, 100))
-                edges, counts = walker_density_bins_and_counts(df.best_walker; n_bins=32, max_walker=2047)
-                println("CUDA walker density histogram: $(length(counts)) bins, sum=", sum(counts))
-                @assert length(counts) == 32
-                println("Pure-Julia CUDA visual kernel test passed (Grok Build 0.1 model).")
-              '
-
-              # Optional plot (guarded main(), telemetry_math_logic.txt, no og)
-              julia plot_latent_space.jl data/telemetry_math_logic.txt /tmp/ci_map.png || echo "plot step done or fell back"
-            '
+        run: bash .github/scripts/run_cuda_visuals.sh

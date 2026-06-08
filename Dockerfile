@@ -14,7 +14,7 @@
 # if: head.repo.full_name guard (see julia.yml).
 #
 # Build (on a machine with docker + nvidia-container-toolkit):
-#   docker build --build-arg CUDA_VERSION=12.8.1 -t surrogate-viz:gpu .
+#   docker build --build-arg CUDA_VERSION=13.2.0 -t surrogate-viz:gpu .
 # Run with GPU (for CUDA.jl execution):
 #   docker run --rm --gpus all -v "$PWD:/app" -w /app surrogate-viz:gpu \
 #     julia --project=. -e 'using Surrogate_Viz, DataFrames; ...'
@@ -22,7 +22,7 @@
 # CUDA_VERSION chosen for sm_120 (RTX 50-series) compatibility.
 # Julia installed via official tarball for non-interactive reliability.
 
-ARG CUDA_VERSION=12.8.1
+ARG CUDA_VERSION=13.2.0
 
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu22.04
 
@@ -53,8 +53,8 @@ WORKDIR /app
 # Layer cache: manifests first
 COPY Project.toml Manifest.toml* ./
 
-# Instantiate + precompile (CUDA.jl weakdep etc. will resolve; large but cached)
-RUN julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
+# Instantiate dependencies during build; precompilation is deferred to runtime/CI.
+RUN julia --project=. -e 'using Pkg; Pkg.instantiate()'
 
 # Full source
 COPY . .
