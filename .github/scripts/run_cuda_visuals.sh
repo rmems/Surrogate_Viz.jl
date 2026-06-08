@@ -34,10 +34,7 @@ julia --version
 echo "=== nvidia-smi inside container (GPU passthrough from preflight + --gpus) ==="
 nvidia-smi
 
-<<<<<<< HEAD
-=======
 # Key fix: CUDA is weakdep + CUDABackendExt. Must add explicitly for the test env.
->>>>>>> ea252d2 (fix: make gpu-preflight + cuda-visuals (and docker build/publish) stop failing on the self-hosted runner (Grok Build 0.1 model))
 julia --project=. -e '
   using Pkg
   Pkg.instantiate()
@@ -46,10 +43,7 @@ julia --project=. -e '
   println("Instantiate + CUDA add + precompile done (Grok Build 0.1 model)")
 '
 
-<<<<<<< HEAD
-=======
 # Verify + assert functional (catches driver/runtime/CUDA.jl issues early)
->>>>>>> ea252d2 (fix: make gpu-preflight + cuda-visuals (and docker build/publish) stop failing on the self-hosted runner (Grok Build 0.1 model))
 julia --project=. -e '
   using CUDA
   println("CUDA.jl version info:")
@@ -59,15 +53,10 @@ julia --project=. -e '
   println("Device: ", CUDA.name(dev), " cap=", CUDA.capability(dev))
 '
 
-<<<<<<< HEAD
-julia --project=. -e '
-  using Surrogate_Viz, DataFrames
-=======
 # The kernels under test (will now take the CUDA path)
 julia --project=. -e '
   using Surrogate_Viz, DataFrames
   # Grok Build 0.1 model: synthetic only (no og data per request)
->>>>>>> ea252d2 (fix: make gpu-preflight + cuda-visuals (and docker build/publish) stop failing on the self-hosted runner (Grok Build 0.1 model))
   df = DataFrame(tick=1:100, best_walker=rand(1:2047, 100))
   edges, counts = walker_density_bins_and_counts(df.best_walker; n_bins=32, max_walker=2047)
   println("CUDA walker density histogram: ", length(counts), " bins, sum=", sum(counts))
@@ -75,9 +64,6 @@ julia --project=. -e '
   println("Pure-Julia CUDA visual kernel test passed (Grok Build 0.1 model).")
 '
 
-<<<<<<< HEAD
-julia plot_latent_space.jl data/telemetry_math_logic.txt /tmp/ci_map.png || echo "plot step done or fell back"
-=======
 # Optional plot (guarded main(), telemetry_math_logic.txt, no og).
 # Headless container: xvfb-run (installed above) or env vars so Plots doesn't
 # try to open a real display and exit non-zero.
@@ -85,5 +71,4 @@ export GKSwstype=100
 export MPLBACKEND=Agg
 xvfb-run -a julia plot_latent_space.jl data/telemetry_math_logic.txt /tmp/ci_map.png \
   || echo "plot step done or fell back (xvfb or display not critical for CI)"
->>>>>>> ea252d2 (fix: make gpu-preflight + cuda-visuals (and docker build/publish) stop failing on the self-hosted runner (Grok Build 0.1 model))
 EOF

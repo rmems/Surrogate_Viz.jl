@@ -35,8 +35,6 @@ jobs:
   gpu-preflight:
     name: GPU/Docker preflight (host + container nvidia-smi)
     runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
-<<<<<<< HEAD
-=======
     # SECURITY (Grok Build 0.1 model)
     if: >-
       github.event_name == 'push' ||
