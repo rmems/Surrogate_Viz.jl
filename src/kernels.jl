@@ -89,11 +89,11 @@ function walker_density_bins_and_counts(
     n_bins::Int = 32,
     max_walker::Int = 2047
 )
-    # Prefer the CUDA version if the extension has attached it.
-    # This is safe for LSP because we only touch the symbol at runtime.
-    if isdefined(Surrogate_Viz, :cuda_best_walker_density_histogram)
-        cuda_fn = getproperty(Surrogate_Viz, :cuda_best_walker_density_histogram)
-        counts = cuda_fn(best_walkers; n_bins=n_bins, max_walker=max_walker)
+    # Prefer the CUDA version only when the package extension is actually attached.
+    # `cuda_best_walker_density_histogram` exists as a zero-method stub in the core module,
+    # so guard on CUDA availability and attached methods rather than symbol presence.
+    if has_cuda() && !isempty(methods(cuda_best_walker_density_histogram))
+        counts = cuda_best_walker_density_histogram(best_walkers; n_bins=n_bins, max_walker=max_walker)
     else
         counts = _plain_walker_histogram(best_walkers, n_bins, max_walker)
     end

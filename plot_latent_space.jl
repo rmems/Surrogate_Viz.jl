@@ -77,7 +77,7 @@ function build_dashboard(df::DataFrame; use_cuda::Bool=true)
 
     # Density panel — use the Surrogate_Viz API for CUDA or CPU fallback (Grok Build 0.1 model).
     # This ensures the CUDA kernel is actually used when available (fixed per review).
-    p2 = if use_cuda && isdefined(SV, :cuda_best_walker_density_histogram)
+    p2 = if use_cuda && SV.has_cuda() && !isempty(methods(SV.cuda_best_walker_density_histogram))
         edges, counts = SV.walker_density_bins_and_counts(df[!, :best_walker]; n_bins=32, max_walker=2047)
         bar(
             edges[1:end-1],
