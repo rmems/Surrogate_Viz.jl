@@ -91,6 +91,18 @@ jobs:
           df -h /tmp /app || true; ls -ld /app || true
           echo "=== Docker runtime info ==="
           "$DOCKER_BIN" info 2>/dev/null | grep -E 'Runtimes:|Default Runtime:|nvidia|Server Version' || true
+          echo "=== nvidia-container-cli binary search (for 'nvidia-container-cli binary path could not be found' error) ==="
+          find /usr -name '*nvidia-container-cli*' 2>/dev/null | head -5 || echo "No nvidia-container-cli under /usr"
+          command -v nvidia-container-cli || echo "nvidia-container-cli not in current PATH"
+          sudo command -v nvidia-container-cli 2>/dev/null || echo "nvidia-container-cli not in root PATH (check sudo which)"
+          echo "=== /etc/docker/daemon.json content ==="
+          cat /etc/docker/daemon.json 2>/dev/null || echo "No /etc/docker/daemon.json or not readable"
+          echo "=== nvidia-container-runtime config (if present) ==="
+          cat /etc/nvidia-container-runtime/config.toml 2>/dev/null || echo "No config.toml"
+          echo "=== Full docker info runtimes (json) ==="
+          "$DOCKER_BIN" info --format '{{json .Runtimes}}' 2>/dev/null | cat || echo "Could not get runtimes json"
+          echo "=== ls for nvidia container binaries ==="
+          ls -l /usr/bin/nvidia-container* /usr/local/bin/nvidia-container* /usr/libexec/nvidia-container* 2>/dev/null || echo "No nvidia-container* binaries in common bin dirs"
 
 # ------------------------------------------------------------------------------------
 # Grok Build 0.1 model + host setup (the piece "GPT-5.4 mini could not fix" because it
@@ -100,6 +112,32 @@ jobs:
 # "could not select device driver", or the container nvidia-smi is empty, the
 # actions-runner Listener user on the 5080 host does not have a working docker +
 # nvidia-container-toolkit setup.
+#
+# Specific error "nvidia-container-cli binary path could not be found":
+# This means the NVIDIA runtime hook (used by --gpus all) cannot locate the
+# nvidia-container-cli binary when setting up the container.
+#
+# Troubleshooting steps (run these and compare output to a working corinth-canal job):
+# 1. Find the binary: find /usr -name '*nvidia-container-cli*' 2>/dev/null
+#    (Common location: /usr/bin/nvidia-container-cli)
+# 2. Re-run configure: sudo nvidia-ctk runtime configure --runtime=docker
+#    (If binary is in non-standard place, you may need to reinstall the toolkit package
+#     or manually set the path in /etc/nvidia-container-runtime/config.toml under [nvidia-container-cli])
+# 3. Check daemon config: cat /etc/docker/daemon.json 2>/dev/null
+#    Look for "nvidia" runtime with "path": "/usr/bin/nvidia-container-runtime"
+# 4. Docker info: docker info | grep -E 'Runtimes:|Default Runtime:|nvidia'
+# 5. Reinstall if needed: sudo apt-get install --reinstall nvidia-container-toolkit nvidia-container-toolkit-base
+# 6. Always: sudo systemctl restart docker
+# 7. Restart the Listener *after* all of the above as the target user.
+#
+# Why "I should be already working" / "Docker actions works in corinth-canal":
+# corinth-canal's GPU jobs (e.g. in gpu-tests.yml) primarily use docker run for
+# *compilation* inside the devel image (nvcc and CUDA headers live inside the container;
+# host GPU passthrough is not required for build steps). This preflight + the
+# cuda-visuals script explicitly test *runtime* device passthrough (--gpus all) so
+# that pure-Julia CUDA.jl can execute kernels on the host RTX 5080 *from inside*
+# the container. The nvidia-container-toolkit + proper --gpus (or --runtime=nvidia)
+# is mandatory for the runtime case.
 #
 # ONE-TIME COMMANDS (run as the user that executes ~/actions-runner/run.sh, or
 # with sudo for the usermod/ctk steps, then switch to that user for the Listener):
