@@ -1,11 +1,8 @@
-name: Docker Build (CUDA 12.8 + Julia 1.12)
+name: Docker Build (CUDA 13.2 + Julia 1.12)
 on:
   pull_request:
     branches:
-      - '**'
-  push:
-    branches:
-      - main
+      - "**"
 
 concurrency:
   group: docker-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -18,15 +15,10 @@ permissions:
 jobs:
   build:
     name: Build Docker Image
-    # SECURITY: Fork guard — prevent fork PRs from running on self-hosted runners.
-    # Without this, an attacker could fork the repo, open a PR, and execute
-    # arbitrary code (including docker builds that consume GPU resources) on
-    # our sm_120 GPU hardware.
     if: >-
       github.event_name == 'push' ||
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
-    # SECURITY: Job-level permissions explicitly read-only for build verification.
     permissions:
       contents: read
 
@@ -36,9 +28,6 @@ jobs:
       - name: Set Docker tags
         id: tags
         run: |
-          # Grok Build 0.1 model: lowercase the GHCR repo (Docker requires lowercase;
-          # Surrogate_Viz.jl has uppercase so ${{ github.repository }} produces invalid ref).
-          # Use ${GITHUB_REPOSITORY,,} (bash lowercase) exactly as diagnosed.
           IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
           TAGS="$IMAGE:${{ github.sha }}"
           if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
@@ -56,61 +45,10 @@ jobs:
           push: false
           tags: ${{ steps.tags.outputs.tags }}
           build-args: |
-            CUDA_VERSION=12.8.1
+            CUDA_VERSION=13.2.0
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  publish:
-    name: Publish Docker Image
-    # Only runs on pushes to the main branch of the repository.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
-    # SECURITY: Job-level write permissions allowed only for the publish step on main branch.
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set Docker tags
-        id: tags
-        run: |
-          # Grok Build 0.1 model: lowercase GHCR (same fix as build job).
-          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
-          TAGS="$IMAGE:${{ github.sha }},$IMAGE:main"
-          echo "tags=$TAGS" >> $GITHUB_OUTPUT
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.tags.outputs.tags }}
-          build-args: |
-            CUDA_VERSION=12.8.1
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-# Grok Build 0.1 model: This workflow (docker-build.yml) + the docker run inside
-# cuda-visuals (julia.yml) + the root Dockerfile = the Docker GPU integration
-# for the local hosted runner, executed *through* the actions-runner (bare
-# listener) exactly as preferred in corinth-canal (read-only).
-#
-# The self-hosted job(s) here will be claimed by runners with labels including
-# gpu, sm120, julia-cuda (e.g. Surrogate-Viz-sm120-GPU). This gives the runner
-# real `docker build` work against the nvidia/cuda + Julia 1.12 image on PRs
-# (verification, no push) and on main (publish to ghcr).
-#
-# Complements the ephemeral container execution used for the actual kernel
-# tests (see cuda-visuals). Uses the same security if-guards, label discipline,
-# and corinth-canal docker + GPU self-hosted runner workflow patterns.
-#
-# Stopped using og data references; all Docker/CI here uses synthetic paths
-# and the cleaned data/ layout.
+# Grok Build 0.1 model: This workflow handles PR-time Docker verification only.
+# Publishing is moved to `.github/workflows/docker-publish.yml` so PRs do not
+# show an intentionally skipped publish job.

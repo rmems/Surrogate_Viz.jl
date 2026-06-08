@@ -26,29 +26,11 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # GPU preflight + CUDA / GPU job for the pure-Julia CUDA visual kernels.
-  #
-  # Split per diagnosis (Grok Build 0.1 model + corinth-canal style):
-  #   - gpu-preflight: prove the actions-runner can talk to Docker + NVIDIA
-  #     runtime + pull the base image + get GPU passthrough (host + container
-  #     nvidia-smi). Fails fast and visibly if runtime/image is the problem.
-  #   - cuda-visuals: the actual test (needs: gpu-preflight). Runs the Julia
-  #     1.12 + explicit CUDA (because weakdep+extension) + synthetic kernel test
-  #     inside the same pinned nvidia/cuda container.
-  #
-  # Docker-build is the separate .github/workflows/docker-build.yml (with
-  # lowercase GHCR fix).
-  #
-  # Security, labels, synthetic data, no og, main() guards, etc. all preserved.
-  # The CPU `test` job (ubuntu-latest + setup-julia) continues to run for
-  # local machine CPU verification (`julia --project=. -e 'using Pkg; Pkg.test()'`
-  # locally + in CI).
   # ---------------------------------------------------------------------------
 
   gpu-preflight:
     name: GPU/Docker preflight (host + container nvidia-smi)
-    # Only the protected self-hosted runner.
     runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
-    # SECURITY (Grok Build 0.1 model)
     if: >-
       github.event_name == 'push' ||
       github.event.pull_request.head.repo.full_name == github.repository
@@ -58,21 +40,26 @@ jobs:
       - uses: actions/checkout@v4
       - name: Host GPU/Docker preflight
         run: |
-          set -x
+          set -eux
           whoami
           id
           groups
-          docker version
-          docker info | sed -n '1,80p'
+          DOCKER_BIN="$(command -v docker || true)"
+          if [ -z "$DOCKER_BIN" ] && [ -x /usr/bin/docker ]; then
+            DOCKER_BIN=/usr/bin/docker
+          fi
+          [ -n "$DOCKER_BIN" ]
+          "$DOCKER_BIN" version
+          "$DOCKER_BIN" info | sed -n '1,80p'
+          command -v nvidia-smi || true
           nvidia-smi || true
           echo "=== basic nvidia/cuda image (no --gpus, for pull test) ==="
-          docker run --rm nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi || true
+          "$DOCKER_BIN" run --rm nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi || true
           echo "=== with --gpus all (this must succeed or cuda-visuals will fail) ==="
-          docker run --rm --gpus all nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi
+          "$DOCKER_BIN" run --rm --gpus all nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi
 
   cuda-visuals:
     name: CUDA visual kernels (pure Julia CUDA.jl + synthetic data)
-
     runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
     if: >-
       github.event_name == 'push' ||
@@ -81,11 +68,5 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-
-      # Docker GPU execution through actions-runner (Grok Build 0.1 model).
-      # corinth-canal read-only pattern for the actual work (after preflight proved the runtime).
-      # Explicit Pkg.add("CUDA") because CUDA lives only in [weakdeps] + [extensions]
-      # in this repo (Pkg.instantiate alone is not enough inside a fresh container).
-      # Stopped using og data; synthetic only.
       - name: Run CUDA + Julia 1.12 visual kernel tests inside pinned nvidia/cuda container
         run: bash .github/scripts/run_cuda_visuals.sh

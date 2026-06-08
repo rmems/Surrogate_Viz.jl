@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-docker run --rm --gpus all \
+DOCKER_BIN="$(command -v docker || true)"
+if [ -z "$DOCKER_BIN" ] && [ -x /usr/bin/docker ]; then
+  DOCKER_BIN=/usr/bin/docker
+fi
+[ -n "$DOCKER_BIN" ]
+"$DOCKER_BIN" --version
+
+"$DOCKER_BIN" run --rm --gpus all \
   -v "$PWD:/app" \
   -w /app \
   nvidia/cuda:13.2.0-devel-ubuntu22.04 \
@@ -22,7 +29,6 @@ julia --version
 echo "=== nvidia-smi inside container (GPU passthrough from preflight + --gpus) ==="
 nvidia-smi
 
-# Key fix: CUDA is weakdep + CUDABackendExt. Must add explicitly for the test env.
 julia --project=. -e '
   using Pkg
   Pkg.instantiate()
@@ -31,7 +37,6 @@ julia --project=. -e '
   println("Instantiate + CUDA add + precompile done (Grok Build 0.1 model)")
 '
 
-# Verify + assert functional (catches driver/runtime/CUDA.jl issues early)
 julia --project=. -e '
   using CUDA
   println("CUDA.jl version info:")
@@ -41,10 +46,8 @@ julia --project=. -e '
   println("Device: ", CUDA.name(dev), " cap=", CUDA.capability(dev))
 '
 
-# The kernels under test (will now take the CUDA path)
 julia --project=. -e '
   using Surrogate_Viz, DataFrames
-  # Grok Build 0.1 model: synthetic only (no og data per request)
   df = DataFrame(tick=1:100, best_walker=rand(1:2047, 100))
   edges, counts = walker_density_bins_and_counts(df.best_walker; n_bins=32, max_walker=2047)
   println("CUDA walker density histogram: ", length(counts), " bins, sum=", sum(counts))
@@ -52,6 +55,5 @@ julia --project=. -e '
   println("Pure-Julia CUDA visual kernel test passed (Grok Build 0.1 model).")
 '
 
-# Optional plot (guarded main(), telemetry_math_logic.txt, no og)
 julia plot_latent_space.jl data/telemetry_math_logic.txt /tmp/ci_map.png || echo "plot step done or fell back"
 EOF
