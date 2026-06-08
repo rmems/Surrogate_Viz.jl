@@ -66,7 +66,14 @@ jobs:
           "$DOCKER_BIN" run --rm nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi || true
           "$DOCKER_BIN" run --rm nvidia/cuda:12.8.1-devel-ubuntu22.04 nvidia-smi || true
           echo "=== with --gpus all (this must succeed or cuda-visuals will fail) ==="
-          "$DOCKER_BIN" run --rm --gpus all nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi || true
+          # Hard check for the primary tag - fail the preflight job visibly if GPU passthrough doesn't work.
+          if ! "$DOCKER_BIN" run --rm --gpus all nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi | tee /tmp/gpu_check.log | grep -q 'NVIDIA\|GeForce\|RTX'; then
+            echo "!!! GPU passthrough check FAILED for 13.2.0 image. See output above and /tmp/gpu_check.log (if captured)."
+            echo "Check the host setup instructions in the comment below this step (usermod docker group + nvidia-ctk + restart docker + restart Listener as that user)."
+            cat /tmp/gpu_check.log 2>/dev/null || true
+            exit 1
+          fi
+          echo "GPU passthrough OK for at least one image tag."
           "$DOCKER_BIN" run --rm --gpus all nvidia/cuda:12.8.1-devel-ubuntu22.04 nvidia-smi || true
           echo "=== id / groups / docker socket for the runner user (often the cause of 'docker failed on actions-runner terminal') ==="
           id -u; id -g; groups; ls -l /var/run/docker.sock || true
@@ -124,4 +131,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run CUDA + Julia 1.12 visual kernel tests inside pinned nvidia/cuda container
-        run: bash .github/scripts/run_cuda_visuals.sh
+        run: |
+          # Make sure the script is executable (in case git checkout didn't preserve mode)
+          chmod +x .github/scripts/run_cuda_visuals.sh || true
+          bash .github/scripts/run_cuda_visuals.sh

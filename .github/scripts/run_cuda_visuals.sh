@@ -19,6 +19,7 @@ fi
   nvidia/cuda:13.2.0-devel-ubuntu22.04 \
   bash -s <<'EOF'
 set -euo pipefail
+set -x   # Extra debug output for the CI logs (Grok Build 0.1 model)
 export DEBIAN_FRONTEND=noninteractive
 apt-get update >/dev/null 2>&1
 apt-get install -y curl ca-certificates git xvfb >/dev/null 2>&1 || true
@@ -32,7 +33,7 @@ export PATH=/usr/local/bin:$PATH
 julia --version
 
 echo "=== nvidia-smi inside container (GPU passthrough from preflight + --gpus) ==="
-nvidia-smi
+nvidia-smi || echo "WARNING: nvidia-smi exited non-zero inside the container (GPU passthrough may be incomplete or driver mismatch). Continuing for diagnostics..."
 
 # Key fix: CUDA is weakdep + CUDABackendExt. Must add explicitly for the test env.
 julia --project=. -e '
@@ -48,7 +49,7 @@ julia --project=. -e '
   using CUDA
   println("CUDA.jl version info:")
   CUDA.versioninfo()
-  @assert CUDA.functional() "CUDA.functional() false inside container — no usable GPU"
+  @assert CUDA.functional() "CUDA.functional() false inside container — no usable GPU (check nvidia-smi output above, driver versions, and that the container really got --gpus all)"
   dev = CUDA.device()
   println("Device: ", CUDA.name(dev), " cap=", CUDA.capability(dev))
 '
