@@ -2,9 +2,7 @@ module CUDABackendExt
 
 using Statistics
 using CUDA
-import Surrogate_Viz: CPUBackend, CUDABackend, _plain_walker_histogram, compute_delta_per_tick,
-    compute_pairwise_deltas, compute_run_stats, cuda_best_walker_density_histogram,
-    has_cuda
+using Surrogate_Viz
 
 function _compute_pairwise_deltas_cuda(off_col::AbstractVector, on_col::AbstractVector)
     off_host = Float32.(collect(off_col))
@@ -14,9 +12,9 @@ function _compute_pairwise_deltas_cuda(off_col::AbstractVector, on_col::Abstract
     deltas_gpu = on_gpu .- off_gpu
 
     return (
-        mean_delta = Float64(mean(deltas_gpu)),
-        max_abs_delta = Float64(maximum(abs.(deltas_gpu))),
-        final_delta = Float64(last(deltas_gpu)),
+        mean_delta=Float64(mean(deltas_gpu)),
+        max_abs_delta=Float64(maximum(abs.(deltas_gpu))),
+        final_delta=Float64(last(deltas_gpu)),
     )
 end
 
@@ -37,7 +35,7 @@ function _compute_run_stats_cuda(delta_values::AbstractVector, entropy_values::U
         final_entropy = missing
     end
 
-    return (; 
+    return (;
         mean_delta,
         max_delta,
         final_delta,
@@ -83,7 +81,7 @@ function _cuda_best_walker_density_histogram(
 
     if n > typemax(Int32) || any(w -> w < typemin(Int32) || w > typemax(Int32), best_walkers)
         @warn "CUDA unavailable for walker density histogram inputs outside Int32 range; using CPU fallback"
-        return _plain_walker_histogram(best_walkers, n_bins, max_walker)
+        return Surrogate_Viz._plain_walker_histogram(best_walkers, n_bins, max_walker)
     end
 
     d_walkers = CUDA.cu(Int32.(collect(best_walkers)))
@@ -93,66 +91,66 @@ function _cuda_best_walker_density_histogram(
 
     threads = 256
     blocks = min(1024, cld(n, threads))
-    CUDA.@cuda threads=threads blocks=blocks hist_kernel!(d_walkers, d_hist, Float32(bin_size), n, n_bins, max_walker)
+    CUDA.@cuda threads = threads blocks = blocks hist_kernel!(d_walkers, d_hist, Float32(bin_size), n, n_bins, max_walker)
 
     return Int.(Array(d_hist))
 end
 
-function compute_pairwise_deltas(
+function Surrogate_Viz.compute_pairwise_deltas(
     off_col::AbstractVector,
     on_col::AbstractVector,
-    ::CUDABackend
+    ::Surrogate_Viz.CUDABackend
 )
-    if !has_cuda()
+    if !Surrogate_Viz.has_cuda()
         @warn "CUDABackend requested but CUDA unavailable; using CPUBackend"
-        return compute_pairwise_deltas(off_col, on_col, CPUBackend())
+        return Surrogate_Viz.compute_pairwise_deltas(off_col, on_col, Surrogate_Viz.CPUBackend())
     end
     return _compute_pairwise_deltas_cuda(off_col, on_col)
 end
 
-function compute_run_stats(
+function Surrogate_Viz.compute_run_stats(
     delta_values::AbstractVector,
     entropy_values::Union{Nothing,AbstractVector},
-    ::CUDABackend
+    ::Surrogate_Viz.CUDABackend
 )
-    if !has_cuda()
+    if !Surrogate_Viz.has_cuda()
         @warn "CUDABackend requested but CUDA unavailable; using CPUBackend"
-        return compute_run_stats(delta_values, entropy_values, CPUBackend())
+        return Surrogate_Viz.compute_run_stats(delta_values, entropy_values, Surrogate_Viz.CPUBackend())
     end
     return _compute_run_stats_cuda(delta_values, entropy_values)
 end
 
-function compute_delta_per_tick(
+function Surrogate_Viz.compute_delta_per_tick(
     features::AbstractMatrix,
-    ::CUDABackend
+    ::Surrogate_Viz.CUDABackend
 )
-    if !has_cuda()
+    if !Surrogate_Viz.has_cuda()
         @warn "CUDABackend requested but CUDA unavailable; using CPUBackend"
-        return compute_delta_per_tick(features, CPUBackend())
+        return Surrogate_Viz.compute_delta_per_tick(features, Surrogate_Viz.CPUBackend())
     end
     return _compute_delta_per_tick_cuda(features)
 end
 
-function compute_delta_per_tick(
+function Surrogate_Viz.compute_delta_per_tick(
     timestamps::AbstractVector,
     features::AbstractMatrix,
-    ::CUDABackend
+    ::Surrogate_Viz.CUDABackend
 )
-    if !has_cuda()
+    if !Surrogate_Viz.has_cuda()
         @warn "CUDABackend requested but CUDA unavailable; using CPUBackend"
-        return compute_delta_per_tick(timestamps, features, CPUBackend())
+        return Surrogate_Viz.compute_delta_per_tick(timestamps, features, Surrogate_Viz.CPUBackend())
     end
     return _compute_delta_per_tick_cuda(timestamps, features)
 end
 
-function cuda_best_walker_density_histogram(
+function Surrogate_Viz.cuda_best_walker_density_histogram(
     best_walkers::AbstractVector{Int};
     n_bins::Int=32,
     max_walker::Int=2047,
 )
-    if !has_cuda()
+    if !Surrogate_Viz.has_cuda()
         @warn "CUDA unavailable; using CPU fallback for walker density histogram"
-        return _plain_walker_histogram(best_walkers, n_bins, max_walker)
+        return Surrogate_Viz._plain_walker_histogram(best_walkers, n_bins, max_walker)
     end
     return _cuda_best_walker_density_histogram(best_walkers; n_bins=n_bins, max_walker=max_walker)
 end

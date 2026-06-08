@@ -6,8 +6,7 @@
 using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
 
-include(joinpath(@__DIR__, "..", "src", "Surrogate_Viz.jl"))
-using .Surrogate_Viz
+using Surrogate_Viz
 const SV = Surrogate_Viz
 
 function main()
