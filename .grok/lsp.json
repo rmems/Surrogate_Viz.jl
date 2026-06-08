@@ -2,18 +2,10 @@
   "servers": {
     "julia": {
       "command": "julia",
-      "args": [
-        "--project=dev",
-        "--startup-file=no",
-        "-e",
-        "using LanguageServer; runserver()"
-      ]
+      "args": ["--project=@zed-julia", "--startup-file=no", "dev/runserver.jl"]
     }
   },
   "julia": {
-    "environmentPath": "dev",
-    "lint": {
-      "run": true
-    }
+    "environmentPath": "dev"
   }
 }

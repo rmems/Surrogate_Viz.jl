@@ -1,5 +1,6 @@
 # Julia specific
 Manifest.toml
+!dev/Manifest.toml
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
