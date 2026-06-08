@@ -66,14 +66,16 @@ jobs:
           "$DOCKER_BIN" run --rm nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi || true
           "$DOCKER_BIN" run --rm nvidia/cuda:12.8.1-devel-ubuntu22.04 nvidia-smi || true
           echo "=== with --gpus all (this must succeed or cuda-visuals will fail) ==="
-          # Hard check for the primary tag - fail the preflight job visibly if GPU passthrough doesn't work.
+          # Check for the primary tag - if GPU passthrough doesn't work, print prominent warning + host setup instructions (from the big comment below), but do not fail the job.
+          # This way preflight always "passes" (for visibility), but logs clearly show if setup is needed.
           if ! "$DOCKER_BIN" run --rm --gpus all nvidia/cuda:13.2.0-devel-ubuntu22.04 nvidia-smi | tee /tmp/gpu_check.log | grep -q 'NVIDIA\|GeForce\|RTX'; then
             echo "!!! GPU passthrough check FAILED for 13.2.0 image. See output above and /tmp/gpu_check.log (if captured)."
             echo "Check the host setup instructions in the comment below this step (usermod docker group + nvidia-ctk + restart docker + restart Listener as that user)."
             cat /tmp/gpu_check.log 2>/dev/null || true
-            exit 1
+            echo "!!! Preflight will continue (non-fatal) so cuda-visuals job can also run and show its own detailed logs."
+          else
+            echo "GPU passthrough OK for at least one image tag."
           fi
-          echo "GPU passthrough OK for at least one image tag."
           "$DOCKER_BIN" run --rm --gpus all nvidia/cuda:12.8.1-devel-ubuntu22.04 nvidia-smi || true
           echo "=== id / groups / docker socket for the runner user (often the cause of 'docker failed on actions-runner terminal') ==="
           id -u; id -g; groups; ls -l /var/run/docker.sock || true
@@ -121,7 +123,6 @@ jobs:
 
   cuda-visuals:
     name: CUDA visual kernels (pure Julia CUDA.jl + synthetic data)
-    needs: gpu-preflight
     runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
     if: >-
       github.event_name == 'push' ||
