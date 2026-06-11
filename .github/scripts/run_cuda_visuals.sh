@@ -35,7 +35,8 @@ julia --version
 echo "=== nvidia-smi inside container (GPU passthrough from preflight + --gpus) ==="
 nvidia-smi || echo "WARNING: nvidia-smi exited non-zero inside the container (GPU passthrough may be incomplete or driver mismatch). Continuing for diagnostics..."
 
-# Key fix: CUDA is weakdep + CUDABackendExt. Must add explicitly for the test env.
+# CUDA is an optional project dependency, so install it explicitly in this
+# containerized CI env before running the GPU-path checks.
 julia --project=. -e '
   using Pkg
   Pkg.instantiate()

@@ -6,10 +6,9 @@ ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")
 using Plots
 
-# Grok Build 0.1 model: bring in the pure-Julia CUDA visual kernels (and has_cuda)
-# that were added for the combined visuals + runner PR. When run with the project
-# environment (which now contains CUDA.jl) this will make cuda_best_walker_density_histogram
-# available for the density panel.
+# Grok Build 0.1 model: bring in the CUDA-aware visual helpers (and has_cuda).
+# If CUDA is installed and functional in the active environment, the density
+# panel will use the GPU-backed histogram path; otherwise it falls back to CPU.
 const SV = Base.require(Base.PkgId(Base.UUID("0e7d9c34-7da8-46ec-ad35-4cb1b8ff7bae"), "Surrogate_Viz"))
 
 # Grok Build 0.1 model: accepts input paths for telemetry; defaults to generic data file.
@@ -53,8 +52,8 @@ function load_tick_data(path::AbstractString)
 end
 
 # Grok Build 0.1 model: optional pure-Julia CUDA path for the "Best Walker Firing Density" histogram.
-# The actual CUDA kernel lives in src/kernels.jl (added as part of the combined visuals+runner PR).
-# Falls back to the plain histogram when CUDA is not available or not requested.
+# The CUDA-backed implementation is routed through Surrogate_Viz and lives in
+# src/cuda_backend.jl, with CPU fallback when CUDA is unavailable or disabled.
 function build_dashboard(df::DataFrame; use_cuda::Bool=true)
     default(fontfamily="Helvetica", legend=false, size=(1400, 900), dpi=180)
 
@@ -121,7 +120,7 @@ function main()
 
     println("Loaded $(nrow(df)) tick rows from $(input_file)")
     println("Saved dashboard to $(output_file)")
-    println("Grok Build 0.1 model: pure Julia CUDA visual kernels (in ext/CUDABackendExt.jl) used for density when available. No og data directories.")
+    println("Grok Build 0.1 model: pure Julia CUDA visual kernels used for density when available. No og data directories.")
 end
 
 # Guard so that `include("plot_latent_space.jl")` (e.g. from CI -e blocks) does not auto-execute the CLI.

@@ -16,9 +16,6 @@ TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 [weakdeps]
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 
-[extensions]
-CUDABackendExt = "CUDA"
-
 [compat]
 CSV = "0.10.16"
 CUDA = "6.1"

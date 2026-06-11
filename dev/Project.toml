@@ -1,4 +1,5 @@
-# Dev/LSP environment: includes CUDA so LanguageServer can resolve CUDABackendExt.
+# Dev/LSP environment: includes CUDA so LanguageServer can analyze the optional
+# CUDA-backed code paths in src/cuda_backend.jl.
 name = "Surrogate_Viz-dev"
 
 [deps]

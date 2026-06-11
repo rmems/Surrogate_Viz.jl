@@ -6,10 +6,14 @@ Manifest.toml
 *.jl.mem
 deps/deps.jl
 
-# IDE
+# IDE / local agent state
 .vscode/
 .idea/
 .codex/
+.zed/
+.grok/
+.kilo/
+.beads/
 *.swp
 *.swo
 *~

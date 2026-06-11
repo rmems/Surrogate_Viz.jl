@@ -75,12 +75,11 @@ Surrogate_Viz.jl/
 │   ├── Surrogate_Viz.jl          # Main module: includes, exports, paired-run logic
 │   ├── backend.jl                # ComputeBackend abstraction (CPUBackend / CUDABackend)
 │   ├── kernels.jl                # CPU dispatch targets for compute kernels
+│   ├── cuda_backend.jl           # CUDA-backed implementations via runtime loading
 │   ├── grok_ozempic.jl           # Grok-ozempic bundle structs, loader, validator
 │   └── normalizers/
 │       ├── SaaqNormalizer.jl     # SAAQ bundle → DataFrames
 │       └── GrokOzempicNormalizer.jl  # Grok-ozempic bundle → DataFrames
-├── ext/
-│   └── CUDABackendExt.jl         # CUDA package extension (GPU acceleration)
 ├── scripts/
 │   ├── validate_saaq_bundle.jl   # Validate a single SAAQ bundle
 │   ├── ingest_saaq_bundles.jl    # Walk directory → normalized CSVs
@@ -151,24 +150,22 @@ compute backend abstraction:
 
 ### CUDA Setup
 
-CUDA is a **weak dependency** — it's never installed unless you explicitly
+CUDA is an **optional dependency** — it's never installed unless you explicitly
 add it. If you have a CUDA-capable GPU:
 
 ```text
 using Pkg
 Pkg.add("CUDA")
-using CUDA  # triggers the CUDABackendExt package extension
+using CUDA
 ```
 
 Then pass `backend=CUDABackend()` to `summarise_run`, `pairwise_summary`,
-or `compute_delta_per_tick`. If CUDA is not functional, the CUDA backend
-automatically falls back to CPU with a warning.
+or `compute_delta_per_tick`. If CUDA is not installed or not functional, the
+CUDA backend automatically falls back to CPU with a warning.
 
-The extension uses:
-- On-device GPU reductions (`mean(gpu)`, `maximum(gpu)`) to avoid
-  full Array transfers for scalar results
-- `CUDA.@allowscalar` for scalar CuArray indexing
-- Instance-based dispatch (`::CUDABackend`) for correct Julia method resolution
+The CUDA-backed path uses runtime loading plus normal Julia dispatch so the core
+package remains usable on CPU-only environments while still enabling GPU
+acceleration when CUDA is available.
 
 ## SAAQ Bundle Ingestion
 
@@ -377,5 +374,3 @@ data or condition-specific behavior is required.
 | CUDA path (if available) | GPU ↔ CPU parity checks |
 | `GrokOzempic` | Bundle loading, validation, all 4 fixture types |
 | `GrokOzempicNormalizer` | Normalization, directory ingestion |
-
-
