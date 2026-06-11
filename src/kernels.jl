@@ -55,3 +55,58 @@ function compute_delta_per_tick(
     t_out = timestamps[2:end]
     return t_out, deltas
 end
+
+# -----------------------------------------------------------------------------
+# Pure Julia CUDA visual kernels (Grok Build 0.1 model)
+#
+# The CUDA-backed implementations live in src/cuda_backend.jl. That file avoids
+# top-level `using CUDA` imports and instead resolves CUDA at runtime through the
+# helpers in src/backend.jl. This keeps the package loadable and editor-friendly
+# even when CUDA is not installed in the active environment.
+#
+# For standalone scripts and other callers, we always provide a CPU fallback.
+# walker_density_bins_and_counts selects the GPU-backed implementation only when
+# CUDA is installed and functional.
+# -----------------------------------------------------------------------------
+
+# Plain-Julia fallback (always available, no CUDA symbols here).
+function _plain_walker_histogram(best_walkers::AbstractVector{Int}, n_bins::Int, max_walker::Int)
+    hist = zeros(Int, n_bins)
+    bin_size = (max_walker + 1) / n_bins
+    for w in best_walkers
+        b = clamp(floor(Int, w / bin_size), 0, n_bins - 1) + 1
+        hist[b] += 1
+    end
+    return hist
+end
+
+function walker_density_bins_and_counts(
+    best_walkers::AbstractVector{Int};
+    n_bins::Int = 32,
+    max_walker::Int = 2047
+)
+    # Prefer the CUDA-backed version only when CUDA is installed and functional.
+    # The generic exists in core, so guard on actual CUDA availability before use.
+    if has_cuda() && !isempty(methods(cuda_best_walker_density_histogram))
+        counts = cuda_best_walker_density_histogram(best_walkers; n_bins=n_bins, max_walker=max_walker)
+    else
+        counts = _plain_walker_histogram(best_walkers, n_bins, max_walker)
+    end
+    edges = range(0, max_walker, length = n_bins + 1)
+    return collect(edges), counts
+end
+
+# The CUDA-backed implementation lives in src/cuda_backend.jl.
+# We document the public API here for discoverability.
+"""
+    cuda_best_walker_density_histogram(best_walkers; n_bins=32, max_walker=2047)
+
+Pure-Julia CUDA implementation (with CPU fallback) of the histogram used for the
+"Best Walker Firing Density" panel.
+
+When CUDA is not installed or not functional, callers should use
+`walker_density_bins_and_counts`, which safely falls back to the CPU path.
+See the CUDA section in this file and src/cuda_backend.jl for details.
+(Grok Build 0.1 model — part of the #43/#44 combined visuals + runner work.)
+"""
+function cuda_best_walker_density_histogram end  # implemented in src/cuda_backend.jl; callers should prefer walker_density_bins_and_counts

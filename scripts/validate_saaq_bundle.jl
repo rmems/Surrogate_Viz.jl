@@ -7,8 +7,7 @@ using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
 
 include(joinpath(@__DIR__, "..", "src", "Surrogate_Viz.jl"))
-using .Surrogate_Viz
-const SV = Surrogate_Viz
+const SV = getfield(@__MODULE__, Symbol("Surrogate_Viz"))
 
 function main()
     if length(ARGS) < 1

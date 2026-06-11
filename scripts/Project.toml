@@ -1,0 +1,8 @@
+# Standalone script environment (Julia 1.12 workspace member).
+[deps]
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Surrogate_Viz = "0e7d9c34-7da8-46ec-ad35-4cb1b8ff7bae"
+
+[sources]
+Surrogate_Viz = {path = ".."}

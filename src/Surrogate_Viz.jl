@@ -4,13 +4,14 @@ module Surrogate_Viz
 
 using CSV
 using DataFrames
-using JSON
+using JSON: JSON, parse
 using Statistics
 
 const IMPORT_ROOT = normpath(joinpath(@__DIR__, "..", "data", "corinth_runs"))
 
 include("backend.jl")
 include("kernels.jl")
+include("cuda_backend.jl")
 
 function validate_path_component(name::AbstractString, value::AbstractString)
     occursin("..", value) && error("Invalid $(name) path component (contains '..'): $(value)")
@@ -73,8 +74,15 @@ end
 to_float64_vec(col) = Float64[Float64(v) for v in skipmissing(col)]
 to_int_ms(v) = Int(round(Float64(v)))
 
+# Grok Build 0.1 model: re-export the new pure-Julia CUDA visual kernels
+# (walker density histogram etc.) for use by plot_latent_space.jl and related
+# when CUDA is available on the target (RTX 5080 / sm_120). These are the
+# kernels added for the combined #43 visuals + #44 runner PR. They are 100%
+# Julia (CUDA.jl) — corinth-canal inspiration is read-only.
+export walker_density_bins_and_counts  # safe public API; uses the CUDA-backed path when CUDA is installed and functional
+
 function summarise_run(df::DataFrame, run::Dict{String,<:Any}, delta_col::Symbol, entropy_col::Union{Nothing,Symbol};
-                     backend::ComputeBackend = CPUBackend())
+    backend::ComputeBackend=CPUBackend())
     nrow(df) > 0 || error("summarise_run: empty DataFrame for run id=$(run["id"]) condition=$(run["condition"])")
 
     delta_values = to_float64_vec(df[!, delta_col])
@@ -101,11 +109,11 @@ function summarise_run(df::DataFrame, run::Dict{String,<:Any}, delta_col::Symbol
 end
 
 function pairwise_summary(off_df::DataFrame, on_df::DataFrame, delta_col::Symbol, entropy_col::Union{Nothing,Symbol};
-                          backend::ComputeBackend = CPUBackend())
+    backend::ComputeBackend=CPUBackend())
     joined = innerjoin(
         select(off_df, :timestamp_ms, delta_col => :delta_off, (entropy_col === nothing ? [] : [entropy_col => :entropy_off])...),
         select(on_df, :timestamp_ms, delta_col => :delta_on, (entropy_col === nothing ? [] : [entropy_col => :entropy_on])...),
-        on = :timestamp_ms,
+        on=:timestamp_ms,
     )
 
     nrow(joined) > 0 || error("No overlapping timestamps between the provided runs")
@@ -136,7 +144,7 @@ end
 
 fmt(x::Missing) = "-"
 function fmt(x::Real)
-    rounded = round(Float64(x); digits = 6)
+    rounded = round(Float64(x); digits=6)
     rounded == 0.0 && (rounded = 0.0)
     return string(rounded)
 end
@@ -195,7 +203,7 @@ KNOWN_MANIFEST_FIELDS = [
     :prompt_profile, :prompt_text, :ticks, :saaq_rule, :saaq_primary_rule,
     :saaq_dual_emit, :validation_status, :error, :telemetry_source, :telemetry_csv_path,
     :telemetry_row_count, :wraparound_enabled, :wraparound_loops,
-:ticks_effective, :run_dir, :output_root, :repeat_idx,
+    :ticks_effective, :run_dir, :output_root, :repeat_idx,
     :repeat_count, :cwd_routing_csv_contaminated, :run_tag, :routing_mode,
     :generated_files, :created_at, :repo, :commit_sha,
 ]
@@ -233,7 +241,7 @@ function load_saaq_bundle(path::AbstractString)::SaaqBundle
         error("Bundle validation failed: run_manifest.json not found at $(manifest_path)")
     end
 
-    raw_manifest = JSON.parsefile(manifest_path)
+    raw_manifest = parse(read(manifest_path, String))
 
     extra_manifest = Dict{String,Any}()
     for (k, v) in raw_manifest
@@ -245,33 +253,33 @@ function load_saaq_bundle(path::AbstractString)::SaaqBundle
     run_status = _status_from_validation(validation_status, run_error)
 
     manifest = RunManifest(
-        run_id = get(raw_manifest, "run_id", ""),
-        run_status = run_status,
-        model_family = get(raw_manifest, "model_family", ""),
-        model_slug = get(raw_manifest, "model_slug", ""),
-        model_descriptor = get(raw_manifest, "checkpoint_path", ""),
-        architecture = get(raw_manifest, "architecture", ""),
-        checkpoint_format = get(raw_manifest, "checkpoint_format", ""),
-        prompt_profile = get(raw_manifest, "prompt_profile", ""),
-        saaq_rule = get(raw_manifest, "saaq_rule", ""),
-        saaq_dual_emit = get(raw_manifest, "saaq_dual_emit", false),
-        telemetry_source = get(raw_manifest, "telemetry_source", ""),
-        routing_mode = get(raw_manifest, "routing_mode", ""),
-        run_tag = get(raw_manifest, "run_tag", ""),
-        repeat_idx = get(raw_manifest, "repeat_idx", 0),
-        repeat_count = get(raw_manifest, "repeat_count", 1),
-        validation_status = validation_status,
-        error = run_error,
-        ticks = get(raw_manifest, "ticks", 0),
-        ticks_effective = get(raw_manifest, "ticks_effective", 0),
-        extra = extra_manifest,
+        run_id=get(raw_manifest, "run_id", ""),
+        run_status=run_status,
+        model_family=get(raw_manifest, "model_family", ""),
+        model_slug=get(raw_manifest, "model_slug", ""),
+        model_descriptor=get(raw_manifest, "checkpoint_path", ""),
+        architecture=get(raw_manifest, "architecture", ""),
+        checkpoint_format=get(raw_manifest, "checkpoint_format", ""),
+        prompt_profile=get(raw_manifest, "prompt_profile", ""),
+        saaq_rule=get(raw_manifest, "saaq_rule", ""),
+        saaq_dual_emit=get(raw_manifest, "saaq_dual_emit", false),
+        telemetry_source=get(raw_manifest, "telemetry_source", ""),
+        routing_mode=get(raw_manifest, "routing_mode", ""),
+        run_tag=get(raw_manifest, "run_tag", ""),
+        repeat_idx=get(raw_manifest, "repeat_idx", 0),
+        repeat_count=get(raw_manifest, "repeat_count", 1),
+        validation_status=validation_status,
+        error=run_error,
+        ticks=get(raw_manifest, "ticks", 0),
+        ticks_effective=get(raw_manifest, "ticks_effective", 0),
+        extra=extra_manifest,
     )
 
     metrics = RunMetrics()
     warnings = RunWarning[]
 
     if isfile(summary_path)
-        raw_summary = JSON.parsefile(summary_path)
+        raw_summary = parse(read(summary_path, String))
 
         extra_metrics = Dict{String,Any}()
         metrics_inner = get(raw_summary, "metrics", raw_summary)
@@ -281,20 +289,20 @@ function load_saaq_bundle(path::AbstractString)::SaaqBundle
 
         raw_metrics = get(raw_summary, "metrics", Dict{String,Any}())
         metrics = RunMetrics(
-            ticks_completed = get(raw_metrics, "ticks_completed", missing),
-            latent_rows = get(raw_metrics, "latent_rows", missing),
-            mean_tick_elapsed_us = get(raw_metrics, "mean_tick_elapsed_us", missing),
-            first_timestamp_ms = get(raw_metrics, "first_timestamp_ms", missing),
-            last_timestamp_ms = get(raw_metrics, "last_timestamp_ms", missing),
-            repeat_determinism = get(raw_metrics, "repeat_determinism", missing),
-            extra = extra_metrics,
+            ticks_completed=get(raw_metrics, "ticks_completed", missing),
+            latent_rows=get(raw_metrics, "latent_rows", missing),
+            mean_tick_elapsed_us=get(raw_metrics, "mean_tick_elapsed_us", missing),
+            first_timestamp_ms=get(raw_metrics, "first_timestamp_ms", missing),
+            last_timestamp_ms=get(raw_metrics, "last_timestamp_ms", missing),
+            repeat_determinism=get(raw_metrics, "repeat_determinism", missing),
+            extra=extra_metrics,
         )
     end
 
     return SaaqBundle(manifest, metrics, warnings)
 end
 
-function validate_saaq_bundle(path::AbstractString)::Tuple{Bool, Vector{String}}
+function validate_saaq_bundle(path::AbstractString)::Tuple{Bool,Vector{String}}
     errors = String[]
     manifest_path = joinpath(path, "run_manifest.json")
     if !isfile(manifest_path)
@@ -302,7 +310,7 @@ function validate_saaq_bundle(path::AbstractString)::Tuple{Bool, Vector{String}}
         return false, errors
     end
     try
-        raw = JSON.parsefile(manifest_path)
+        raw = parse(read(manifest_path, String))
         if !haskey(raw, "run_id")
             push!(errors, "run_manifest.json missing required field: run_id")
         end

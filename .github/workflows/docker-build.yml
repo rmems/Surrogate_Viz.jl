@@ -1,0 +1,58 @@
+name: Docker Build (CUDA 13.2 + Julia 1.12)
+on:
+  pull_request:
+    branches:
+      - "**"
+
+concurrency:
+  group: docker-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# SECURITY: Restrict top-level permissions to read-only.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Docker Image
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set Docker tags
+        id: tags
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          TAGS="$IMAGE:${{ github.sha }}"
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            TAGS="$TAGS,$IMAGE:main"
+          fi
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            TAGS="$TAGS,$IMAGE:pr-${{ github.event.number }}"
+          fi
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
+
+      - name: Build Docker Image (No Push)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: ${{ steps.tags.outputs.tags }}
+          build-args: |
+            CUDA_VERSION=13.2.0
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+# Grok Build 0.1 model: This workflow handles PR-time Docker verification only.
+# Publishing is moved to `.github/workflows/docker-publish.yml` so PRs do not
+# show an intentionally skipped publish job.
+#
+# The build runs on the self-hosted GPU runner (labels include docker). It
+# exercises `docker build` of the root Dockerfile (nvidia/cuda + Julia 1.12).
+# If this job fails, check the host docker + nvidia-container-toolkit setup
+# for the runner user (see the big comment in julia.yml gpu-preflight).
