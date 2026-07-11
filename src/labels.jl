@@ -78,6 +78,7 @@ function classify_walkers(tick_data::DataFrame; attractor_threshold::Float64=0.0
 
     counts = combine(groupby(tick_data, :best_walker), nrow => :count)
     total = sum(counts.count)
+    total == 0 && error("classify_walkers: no walker data found in tick_data")
     counts.freq = counts.count ./ total
 
     groups = WalkerGroup[]
