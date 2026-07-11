@@ -6,8 +6,7 @@
 using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
 
-include(joinpath(@__DIR__, "..", "src", "Surrogate_Viz.jl"))
-const SV = getfield(@__MODULE__, Symbol("Surrogate_Viz"))
+const SV = Base.require(Base.PkgId(Base.UUID("0e7d9c34-7da8-46ec-ad35-4cb1b8ff7bae"), "Surrogate_Viz"))
 
 function main()
     if length(ARGS) < 1

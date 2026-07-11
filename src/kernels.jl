@@ -85,8 +85,9 @@ function walker_density_bins_and_counts(
     n_bins::Int = 32,
     max_walker::Int = 2047
 )
-    # Prefer the CUDA-backed version only when CUDA is installed and functional.
-    # The generic exists in core, so guard on actual CUDA availability before use.
+    # Prefer the CUDA version only when the package extension is actually attached.
+    # `cuda_best_walker_density_histogram` exists as a zero-method stub in the core module,
+    # so guard on CUDA availability and attached methods rather than symbol presence.
     if has_cuda() && !isempty(methods(cuda_best_walker_density_histogram))
         counts = cuda_best_walker_density_histogram(best_walkers; n_bins=n_bins, max_walker=max_walker)
     else
@@ -109,4 +110,4 @@ When CUDA is not installed or not functional, callers should use
 See the CUDA section in this file and src/cuda_backend.jl for details.
 (Grok Build 0.1 model — part of the #43/#44 combined visuals + runner work.)
 """
-function cuda_best_walker_density_histogram end  # implemented in src/cuda_backend.jl; callers should prefer walker_density_bins_and_counts
+function cuda_best_walker_density_histogram end  # provided by extension when available

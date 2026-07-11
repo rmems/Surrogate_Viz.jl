@@ -59,20 +59,20 @@ function build_plot(off_df::DataFrame, on_df::DataFrame, joined_df::DataFrame, d
     p1 = plot(
         off_df.timestamp_ms,
         off_df[!, delta_col];
-        label = "control-off",
+        label = SV.pretty_condition("baseline"),
         color = :navy,
-        xlabel = "Timestamp (ms)",
-        ylabel = string(delta_col),
-        title = "SAAQ 1.5 Baseline Pair: $(delta_col)",
+        xlabel = SV.pretty_column("timestamp_ms"),
+        ylabel = SV.pretty_column(delta_col),
+        title = "SAAQ 1.5 Baseline Pair: $(SV.pretty_column(delta_col))",
     )
-    plot!(p1, on_df.timestamp_ms, on_df[!, delta_col]; label = "control-on", color = :crimson)
+    plot!(p1, on_df.timestamp_ms, on_df[!, delta_col]; label = SV.pretty_condition("treatment"), color = :crimson)
 
     p2 = plot(
         joined_df.timestamp_ms,
         joined_df.delta_on_minus_off;
-        label = "control-on - control-off",
+        label = "$(SV.pretty_condition(\"treatment\")) - $(SV.pretty_condition(\"baseline\"))",
         color = :darkgreen,
-        xlabel = "Timestamp (ms)",
+        xlabel = SV.pretty_column("timestamp_ms"),
         ylabel = "Delta Difference",
         title = "Pairwise Delta Difference",
     )
@@ -85,13 +85,13 @@ function build_plot(off_df::DataFrame, on_df::DataFrame, joined_df::DataFrame, d
     p3 = plot(
         off_df.timestamp_ms,
         off_df[!, entropy_col];
-        label = "routing_entropy off",
+        label = "$(SV.pretty_column(\"routing_entropy\")) (off)",
         color = :purple4,
-        xlabel = "Timestamp (ms)",
-        ylabel = string(entropy_col),
+        xlabel = SV.pretty_column("timestamp_ms"),
+        ylabel = SV.pretty_column(entropy_col),
         title = "Routing Entropy",
     )
-    plot!(p3, on_df.timestamp_ms, on_df[!, entropy_col]; label = "routing_entropy on", color = :orange3)
+    plot!(p3, on_df.timestamp_ms, on_df[!, entropy_col]; label = "$(SV.pretty_column(\"routing_entropy\")) (on)", color = :orange3)
 
     return plot(p1, p2, p3; layout = (3, 1))
 end
