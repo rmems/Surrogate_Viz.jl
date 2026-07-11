@@ -130,7 +130,7 @@ function build_plot(model_slug::AbstractString, off_df::DataFrame, on_df::DataFr
     p2 = plot(
         joined_df.timestamp_ms,
         joined_df.delta_on_minus_off;
-        label = "$(SV.pretty_condition(\"treatment\")) - $(SV.pretty_condition(\"baseline\"))",
+        label = "$(SV.pretty_condition("treatment")) - $(SV.pretty_condition("baseline"))",
         color = :darkgreen,
         xlabel = SV.pretty_column("timestamp_ms"),
         ylabel = "Delta Difference",
@@ -146,14 +146,14 @@ function build_plot(model_slug::AbstractString, off_df::DataFrame, on_df::DataFr
     p3 = plot(
         off_df.timestamp_ms,
         off_df[!, entropy_col];
-        label = "$(SV.pretty_column(\"routing_entropy\")) (off)",
+        label = "$(SV.pretty_column("routing_entropy")) (off)",
         color = :purple4,
         xlabel = SV.pretty_column("timestamp_ms"),
         ylabel = SV.pretty_column(entropy_col),
         title = "Routing Entropy",
         panel_attrs...,
     )
-    plot!(p3, on_df.timestamp_ms, on_df[!, entropy_col]; label = "$(SV.pretty_column(\"routing_entropy\")) (on)", color = :orange3)
+    plot!(p3, on_df.timestamp_ms, on_df[!, entropy_col]; label = "$(SV.pretty_column("routing_entropy")) (on)", color = :orange3)
 
     return plot(p1, p2, p3; layout = (3, 1), size = fig_size, dpi = 180)
 end

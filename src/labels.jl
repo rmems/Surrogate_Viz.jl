@@ -28,6 +28,7 @@ const COLUMN_LABELS = Dict(
     "routing_entropy"          => "Routing Entropy",
     "best_walker"              => "Best Walker Index",
     "saaq_delta_q_v15_target"  => "SAAQ Delta Q (v1.5 Target)",
+    "saaq_delta_q_target"      => "SAAQ Delta Q (Target)",
     "saaq_delta_q_prev"       => "SAAQ Delta Q (Previous)",
     "gpu_temp_c"               => "GPU Temperature (\u00b0C)",
     "gpu_power_w"              => "GPU Power (W)",
@@ -74,12 +75,12 @@ struct WalkerGroup
 end
 
 function classify_walkers(tick_data::DataFrame; attractor_threshold::Float64=0.05, rare_threshold::Float64=0.001)
-    :best_walker in Symbol.(names(tick_data)) || error("classify_walkers: best_walker column not found")
+    hasproperty(tick_data, :best_walker) || error("classify_walkers: best_walker column not found")
 
     counts = combine(groupby(tick_data, :best_walker), nrow => :count)
     total = sum(counts.count)
-    total == 0 && error("classify_walkers: no walker data found in tick_data")
-    counts.freq = counts.count ./ total
+    total == 0 && return WalkerGroup[]
+    counts[!, :freq] = counts.count ./ total
 
     groups = WalkerGroup[]
     for row in eachrow(counts)
