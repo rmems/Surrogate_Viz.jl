@@ -11,7 +11,6 @@ const IMPORT_ROOT = normpath(joinpath(@__DIR__, "..", "data", "corinth_runs"))
 
 include("backend.jl")
 include("kernels.jl")
-include("cuda_backend.jl")
 
 function validate_path_component(name::AbstractString, value::AbstractString)
     occursin("..", value) && error("Invalid $(name) path component (contains '..'): $(value)")

@@ -59,10 +59,10 @@ end
 # -----------------------------------------------------------------------------
 # Pure Julia CUDA visual kernels (Grok Build 0.1 model)
 #
-# The CUDA-backed implementations live in src/cuda_backend.jl. That file avoids
-# top-level `using CUDA` imports and instead resolves CUDA at runtime through the
-# helpers in src/backend.jl. This keeps the package loadable and editor-friendly
-# even when CUDA is not installed in the active environment.
+# The CUDA-backed implementations live in ext/CUDABackendExt.jl, a package
+# extension that is only loaded when CUDA is loaded by the user. This keeps the
+# package loadable and editor-friendly even when CUDA is not installed in the
+# active environment.
 #
 # For standalone scripts and other callers, we always provide a CPU fallback.
 # walker_density_bins_and_counts selects the GPU-backed implementation only when
@@ -86,8 +86,9 @@ function walker_density_bins_and_counts(
     max_walker::Int = 2047
 )
     # Prefer the CUDA version only when the package extension is actually attached.
-    # `cuda_best_walker_density_histogram` exists as a zero-method stub in the core module,
-    # so guard on CUDA availability and attached methods rather than symbol presence.
+    # `cuda_best_walker_density_histogram` exists as a zero-method stub in the core
+    # module until ext/CUDABackendExt.jl adds a method, so guard on CUDA availability
+    # and attached methods rather than symbol presence.
     if has_cuda() && !isempty(methods(cuda_best_walker_density_histogram))
         counts = cuda_best_walker_density_histogram(best_walkers; n_bins=n_bins, max_walker=max_walker)
     else
@@ -97,7 +98,7 @@ function walker_density_bins_and_counts(
     return collect(edges), counts
 end
 
-# The CUDA-backed implementation lives in src/cuda_backend.jl.
+# The CUDA-backed implementation lives in ext/CUDABackendExt.jl.
 # We document the public API here for discoverability.
 """
     cuda_best_walker_density_histogram(best_walkers; n_bins=32, max_walker=2047)
@@ -107,7 +108,7 @@ Pure-Julia CUDA implementation (with CPU fallback) of the histogram used for the
 
 When CUDA is not installed or not functional, callers should use
 `walker_density_bins_and_counts`, which safely falls back to the CPU path.
-See the CUDA section in this file and src/cuda_backend.jl for details.
+See the CUDA section in this file and ext/CUDABackendExt.jl for details.
 (Grok Build 0.1 model — part of the #43/#44 combined visuals + runner work.)
 """
 function cuda_best_walker_density_histogram end  # provided by extension when available
