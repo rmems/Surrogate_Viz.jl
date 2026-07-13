@@ -56,6 +56,69 @@ function compute_delta_per_tick(
     return t_out, deltas
 end
 
+# Core shims for CUDABackend. These methods are always available in the package so
+# callers can pass `backend=CUDABackend()` without manually loading `CUDA` first.
+# When CUDA is installed and functional, they load the extension and dispatch to the
+# GPU implementations; otherwise they fall back to CPUBackend with a warning.
+function compute_pairwise_deltas(
+    off_col::AbstractVector,
+    on_col::AbstractVector,
+    ::CUDABackend
+)
+    if has_cuda()
+        ext = Base.get_extension(@__MODULE__, :CUDABackendExt)
+        if ext !== nothing
+            return Base.invokelatest(compute_pairwise_deltas, off_col, on_col, CUDABackend())
+        end
+    end
+    @warn "CUDABackend requested but CUDA unavailable; using CPUBackend"
+    return compute_pairwise_deltas(off_col, on_col, CPUBackend())
+end
+
+function compute_run_stats(
+    delta_values::AbstractVector,
+    entropy_values::Union{Nothing,AbstractVector},
+    ::CUDABackend
+)
+    if has_cuda()
+        ext = Base.get_extension(@__MODULE__, :CUDABackendExt)
+        if ext !== nothing
+            return Base.invokelatest(compute_run_stats, delta_values, entropy_values, CUDABackend())
+        end
+    end
+    @warn "CUDABackend requested but CUDA unavailable; using CPUBackend"
+    return compute_run_stats(delta_values, entropy_values, CPUBackend())
+end
+
+function compute_delta_per_tick(
+    features::AbstractMatrix,
+    ::CUDABackend
+)
+    if has_cuda()
+        ext = Base.get_extension(@__MODULE__, :CUDABackendExt)
+        if ext !== nothing
+            return Base.invokelatest(compute_delta_per_tick, features, CUDABackend())
+        end
+    end
+    @warn "CUDABackend requested but CUDA unavailable; using CPUBackend"
+    return compute_delta_per_tick(features, CPUBackend())
+end
+
+function compute_delta_per_tick(
+    timestamps::AbstractVector,
+    features::AbstractMatrix,
+    ::CUDABackend
+)
+    if has_cuda()
+        ext = Base.get_extension(@__MODULE__, :CUDABackendExt)
+        if ext !== nothing
+            return Base.invokelatest(compute_delta_per_tick, timestamps, features, CUDABackend())
+        end
+    end
+    @warn "CUDABackend requested but CUDA unavailable; using CPUBackend"
+    return compute_delta_per_tick(timestamps, features, CPUBackend())
+end
+
 # -----------------------------------------------------------------------------
 # Pure Julia CUDA visual kernels (Grok Build 0.1 model)
 #
