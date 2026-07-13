@@ -149,11 +149,15 @@ function walker_density_bins_and_counts(
     max_walker::Int = 2047
 )
     # Prefer the CUDA version only when the package extension is actually attached.
-    # `cuda_best_walker_density_histogram` exists as a zero-method stub in the core
-    # module until ext/CUDABackendExt.jl adds a method, so guard on CUDA availability
-    # and attached methods rather than symbol presence.
-    if has_cuda() && !isempty(methods(cuda_best_walker_density_histogram))
-        counts = cuda_best_walker_density_histogram(best_walkers; n_bins=n_bins, max_walker=max_walker)
+    # Use Base.invokelatest to avoid world-age issues when the extension is loaded
+    # dynamically (e.g., first call in a fresh process).
+    if has_cuda()
+        ext = Base.get_extension(@__MODULE__, :CUDABackendExt)
+        if ext !== nothing
+            counts = Base.invokelatest(ext._cuda_best_walker_density_histogram, best_walkers; n_bins=n_bins, max_walker=max_walker)
+        else
+            counts = _plain_walker_histogram(best_walkers, n_bins, max_walker)
+        end
     else
         counts = _plain_walker_histogram(best_walkers, n_bins, max_walker)
     end
