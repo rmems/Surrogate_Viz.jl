@@ -9,7 +9,7 @@ using Plots
 # Grok Build 0.1 model: bring in the CUDA-aware visual helpers (and has_cuda).
 # If CUDA is installed and functional in the active environment, the density
 # panel will use the GPU-backed histogram path; otherwise it falls back to CPU.
-const SV = Base.require(Base.PkgId(Base.UUID("0e7d9c34-7da8-46ec-ad35-4cb1b8ff7bae"), "Surrogate_Viz"))
+import Surrogate_Viz as SV
 
 # Grok Build 0.1 model: accepts input paths for telemetry; defaults to generic data file.
 # No og data directories are used (per user request). Use pure-Julia CUDA (see kernels)

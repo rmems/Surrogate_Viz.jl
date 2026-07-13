@@ -6,7 +6,7 @@
 using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
 
-const SV = Base.require(Base.PkgId(Base.UUID("0e7d9c34-7da8-46ec-ad35-4cb1b8ff7bae"), "Surrogate_Viz"))
+import Surrogate_Viz as SV
 using CSV
 using DataFrames
 
