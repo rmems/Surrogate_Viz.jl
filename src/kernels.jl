@@ -68,7 +68,7 @@ function compute_pairwise_deltas(
     if has_cuda()
         ext = Base.get_extension(@__MODULE__, :CUDABackendExt)
         if ext !== nothing
-            return Base.invokelatest(compute_pairwise_deltas, off_col, on_col, CUDABackend())
+            return Base.invokelatest(ext._compute_pairwise_deltas_cuda, off_col, on_col)
         end
     end
     @warn "CUDABackend requested but CUDA unavailable; using CPUBackend"
@@ -83,7 +83,7 @@ function compute_run_stats(
     if has_cuda()
         ext = Base.get_extension(@__MODULE__, :CUDABackendExt)
         if ext !== nothing
-            return Base.invokelatest(compute_run_stats, delta_values, entropy_values, CUDABackend())
+            return Base.invokelatest(ext._compute_run_stats_cuda, delta_values, entropy_values)
         end
     end
     @warn "CUDABackend requested but CUDA unavailable; using CPUBackend"
@@ -97,7 +97,7 @@ function compute_delta_per_tick(
     if has_cuda()
         ext = Base.get_extension(@__MODULE__, :CUDABackendExt)
         if ext !== nothing
-            return Base.invokelatest(compute_delta_per_tick, features, CUDABackend())
+            return Base.invokelatest(ext._compute_delta_per_tick_cuda, features)
         end
     end
     @warn "CUDABackend requested but CUDA unavailable; using CPUBackend"
@@ -112,7 +112,7 @@ function compute_delta_per_tick(
     if has_cuda()
         ext = Base.get_extension(@__MODULE__, :CUDABackendExt)
         if ext !== nothing
-            return Base.invokelatest(compute_delta_per_tick, timestamps, features, CUDABackend())
+            return Base.invokelatest(ext._compute_delta_per_tick_cuda, timestamps, features)
         end
     end
     @warn "CUDABackend requested but CUDA unavailable; using CPUBackend"

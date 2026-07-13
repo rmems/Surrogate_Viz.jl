@@ -98,53 +98,6 @@ function _cuda_best_walker_density_histogram(
     return Int.(Array(d_hist))
 end
 
-function compute_pairwise_deltas(
-    off_col::AbstractVector,
-    on_col::AbstractVector,
-    ::CUDABackend
-)
-    if !has_cuda()
-        @warn "CUDABackend requested but CUDA unavailable; using CPUBackend"
-        return compute_pairwise_deltas(off_col, on_col, CPUBackend())
-    end
-    return _compute_pairwise_deltas_cuda(off_col, on_col)
-end
-
-function compute_run_stats(
-    delta_values::AbstractVector,
-    entropy_values::Union{Nothing,AbstractVector},
-    ::CUDABackend
-)
-    if !has_cuda()
-        @warn "CUDABackend requested but CUDA unavailable; using CPUBackend"
-        return compute_run_stats(delta_values, entropy_values, CPUBackend())
-    end
-    return _compute_run_stats_cuda(delta_values, entropy_values)
-end
-
-function compute_delta_per_tick(
-    features::AbstractMatrix,
-    ::CUDABackend
-)
-    if !has_cuda()
-        @warn "CUDABackend requested but CUDA unavailable; using CPUBackend"
-        return compute_delta_per_tick(features, CPUBackend())
-    end
-    return _compute_delta_per_tick_cuda(features)
-end
-
-function compute_delta_per_tick(
-    timestamps::AbstractVector,
-    features::AbstractMatrix,
-    ::CUDABackend
-)
-    if !has_cuda()
-        @warn "CUDABackend requested but CUDA unavailable; using CPUBackend"
-        return compute_delta_per_tick(timestamps, features, CPUBackend())
-    end
-    return _compute_delta_per_tick_cuda(timestamps, features)
-end
-
 function cuda_best_walker_density_histogram(
     best_walkers::AbstractVector{Int};
     n_bins::Int=32,
