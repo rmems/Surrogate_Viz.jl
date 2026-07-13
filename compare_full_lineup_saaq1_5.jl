@@ -24,7 +24,7 @@ const REPORT_PATH = joinpath(OUTPUT_DIR, "full_lineup_saaq1_5_comparison.md")
 const CAMPAIGN = "full_lineup"
 const TELEMETRY_SOURCE = "csv_re4_path_tracing_telemetry"
 const RULE = "SaaqV1_5SqrtRate"
-const EQUATION_SOURCE = "outputs/20260414_194227_v2pNMk/hall_of_fame.csv"
+const EQUATION_SOURCE = "outputs/20260414_194227_v2pNMk/pareto_front.csv"
 const REPEAT_IDX = 0
 
 const MODEL_ORDER = [
