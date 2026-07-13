@@ -14,6 +14,10 @@ deps/deps.jl
 .grok/
 .kilo/
 .beads/
+.cursor/
+.kiro/
+.opencode/
+.mimocode/
 *.swp
 *.swo
 *~
