@@ -12,17 +12,13 @@ permissions:
 
 jobs:
   test:
-    # CPU-only job. This is the one that runs locally on your machine
-    # (`julia --project=. -e 'using Pkg; Pkg.test()'`) and on GitHub-hosted
-    # ubuntu-latest. It must stay reliable and is intentionally *not* on the
-    # self-hosted GPU runner. (Grok Build 0.1 model)
-    runs-on: ubuntu-latest
+    # Runs on self-hosted GPU runner for full test coverage including CUDA tests
+    runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
+    if: >-
+      github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v2
-        with:
-          version: "1.12"
-      - uses: julia-actions/cache@v2
       - name: Instantiate
         run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
       - name: Run tests
