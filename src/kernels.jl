@@ -178,4 +178,17 @@ When CUDA is not installed or not functional, callers should use
 See the CUDA section in this file and ext/CUDABackendExt.jl for details.
 (Grok Build 0.1 model — part of the #43/#44 combined visuals + runner work.)
 """
-function cuda_best_walker_density_histogram end  # provided by extension when available
+function cuda_best_walker_density_histogram(
+    best_walkers::AbstractVector{Int};
+    n_bins::Int = 32,
+    max_walker::Int = 2047
+)
+    if has_cuda()
+        ext = Base.get_extension(@__MODULE__, :CUDABackendExt)
+        if ext !== nothing
+            return Base.invokelatest(ext._cuda_best_walker_density_histogram, best_walkers; n_bins=n_bins, max_walker=max_walker)
+        end
+    end
+    @warn "CUDA not available; using CPU fallback for walker density histogram"
+    return _plain_walker_histogram(best_walkers, n_bins, max_walker)
+end
