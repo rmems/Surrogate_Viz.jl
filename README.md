@@ -290,7 +290,7 @@ runs_df, metrics_df, issues_df = normalize_grok_ozempic_dir("path/to/bundles/")
 | Dual-SAAQ + telemetry schema             | `corinth-canal`    |
 | SymbolicRegression.jl driver scripts     | `Surrogate_Viz.jl` |
 | Plots / dashboards / exploratory notes   | `Surrogate_Viz.jl` |
-| `hall_of_fame.csv` + PNG artifacts       | `Surrogate_Viz.jl/outputs/` |
+| `pareto_front.csv` + PNG artifacts       | `Surrogate_Viz.jl/outputs/` |
 
 **One-way data flow:** simulator outputs land under
 `data/<model>/` in this repo; generated artifacts live under

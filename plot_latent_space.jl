@@ -9,7 +9,7 @@ using Plots
 # Grok Build 0.1 model: bring in the CUDA-aware visual helpers (and has_cuda).
 # If CUDA is installed and functional in the active environment, the density
 # panel will use the GPU-backed histogram path; otherwise it falls back to CPU.
-const SV = Base.require(Base.PkgId(Base.UUID("0e7d9c34-7da8-46ec-ad35-4cb1b8ff7bae"), "Surrogate_Viz"))
+import Surrogate_Viz as SV
 
 # Grok Build 0.1 model: accepts input paths for telemetry; defaults to generic data file.
 # No og data directories are used (per user request). Use pure-Julia CUDA (see kernels)
@@ -24,7 +24,7 @@ function input_path()
         return ARGS[1]
     end
     # Grok Build 0.1 model: default to non-og data file. Provide via args if needed.
-    return "data/telemetry_math_logic.txt"
+    return "data/math_logic_tick_telemetry.txt"
 end
 
 function output_path()
@@ -61,8 +61,8 @@ function build_dashboard(df::DataFrame; use_cuda::Bool=true)
         df[!, :tick],
         df[!, :best_walker];
         title="SNN Routing Path Over Time",
-        xlabel="Tick",
-        ylabel="Best Walker Index",
+        xlabel=SV.pretty_column("tick"),
+        ylabel=SV.pretty_column("best_walker"),
         # Grok Build 0.1 model: ylims=(2047, 0) for reversed y-axis (higher walker indices at top)
         # to match historical walker/spiking graph orientation.
         ylims=(2047, 0),
@@ -82,7 +82,7 @@ function build_dashboard(df::DataFrame; use_cuda::Bool=true)
             edges[1:end-1],
             counts;
             title="Best Walker Firing Density (CUDA path)",
-            xlabel="Best Walker Index",
+            xlabel=SV.pretty_column("best_walker"),
             ylabel="Count",
             xlims=(0, 2047),
             color=:tomato,
@@ -95,7 +95,7 @@ function build_dashboard(df::DataFrame; use_cuda::Bool=true)
         histogram(
             df[!, :best_walker];
             title="Best Walker Firing Density",
-            xlabel="Best Walker Index",
+            xlabel=SV.pretty_column("best_walker"),
             ylabel="Count",
             bins=0:64:2048,
             xlims=(0, 2047),

@@ -11,7 +11,6 @@ const IMPORT_ROOT = normpath(joinpath(@__DIR__, "..", "data", "corinth_runs"))
 
 include("backend.jl")
 include("kernels.jl")
-include("cuda_backend.jl")
 
 function validate_path_component(name::AbstractString, value::AbstractString)
     occursin("..", value) && error("Invalid $(name) path component (contains '..'): $(value)")
@@ -343,6 +342,8 @@ const normalize_grok_ozempic_to_tables = getfield(_grok_normalizer, :normalize_g
 const normalize_grok_ozempic_dir = getfield(_grok_normalizer, :normalize_grok_ozempic_dir)
 const normalize_grok_ozempic_bundle_to_tables = getfield(_grok_normalizer, :normalize_grok_ozempic_bundle_to_tables)
 
+include("labels.jl")
+
 export imported_latent_path, load_latent_df, detect_delta_column, maybe_entropy_column
 export to_float64_vec, to_int_ms, summarise_run, pairwise_summary, fmt
 export validate_path_component, IMPORT_ROOT
@@ -354,5 +355,7 @@ export ComputeBackend, CPUBackend, CUDABackend, has_cuda, compute_delta_per_tick
 export GrokOzempicFailure, GrokOzempicWarning, GrokOzempicReport, GrokOzempicBundle
 export load_grok_ozempic_bundle, validate_grok_ozempic_bundle
 export normalize_grok_ozempic_to_tables, normalize_grok_ozempic_dir, normalize_grok_ozempic_bundle_to_tables
+export pretty_condition, pretty_column, pretty_model
+export classify_walkers, walker_label, WalkerGroup
 
 end # module Surrogate_Viz

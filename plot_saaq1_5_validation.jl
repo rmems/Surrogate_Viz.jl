@@ -10,6 +10,9 @@ ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")
 ENV["QT_QPA_PLATFORM"] = get(ENV, "QT_QPA_PLATFORM", "offscreen")
 using Plots
 
+include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
+const SV = getfield(Main, :Surrogate_Viz)
+
 const TICK_PATTERN = r"^tick=(\d+) best_walker=(\d+) elapsed_us=(\d+) gpu_temp_c=([-+0-9.eE]+) gpu_power_w=([-+0-9.eE]+) cpu_tctl_c=([-+0-9.eE]+) cpu_package_power_w=([-+0-9.eE]+)$"
 
 const MODELS = [
@@ -147,46 +150,46 @@ function build_dashboard(latent_df::DataFrame, tick_df::DataFrame)
     p1 = plot(
         latent_df.tick,
         latent_df.avg_pop_firing_rate_hz;
-        label = "avg_pop_firing_rate_hz",
+        label = SV.pretty_column("avg_pop_firing_rate_hz"),
         color = :navy,
-        xlabel = "Tick",
-        ylabel = "Hidden Population Rate (Hz)",
+        xlabel = SV.pretty_column("tick"),
+        ylabel = SV.pretty_column("avg_pop_firing_rate_hz"),
         title = "SAAQ 1.5 Validation: Firing Rate",
     )
 
     p2 = plot(
         latent_df.tick,
         latent_df.routing_entropy;
-        label = "routing_entropy",
+        label = SV.pretty_column("routing_entropy"),
         color = :darkgreen,
-        xlabel = "Tick",
-        ylabel = "Routing Entropy",
+        xlabel = SV.pretty_column("tick"),
+        ylabel = SV.pretty_column("routing_entropy"),
         title = "Routing Entropy",
     )
 
     p3 = scatter(
         tick_df.tick,
         tick_df.best_walker;
-        label = "best_walker",
+        label = SV.pretty_column("best_walker"),
         color = :purple4,
         markersize = 4,
-        xlabel = "Tick",
-        ylabel = "Best Walker",
+        xlabel = SV.pretty_column("tick"),
+        ylabel = SV.pretty_column("best_walker"),
         title = "Walker Activity",
     )
 
     p4 = plot(
         latent_df.tick,
         latent_df.gpu_temp_c;
-        label = "gpu_temp_c",
+        label = SV.pretty_column("gpu_temp_c"),
         color = :orange3,
-        xlabel = "Tick",
+        xlabel = SV.pretty_column("tick"),
         ylabel = "Telemetry",
         title = "Raw Telemetry Channels",
     )
-    plot!(p4, latent_df.tick, latent_df.gpu_power_w; label = "gpu_power_w", color = :royalblue3)
-    plot!(p4, latent_df.tick, latent_df.cpu_tctl_c; label = "cpu_tctl_c", color = :forestgreen)
-    plot!(p4, latent_df.tick, latent_df.cpu_package_power_w; label = "cpu_package_power_w", color = :brown3)
+    plot!(p4, latent_df.tick, latent_df.gpu_power_w; label = SV.pretty_column("gpu_power_w"), color = :royalblue3)
+    plot!(p4, latent_df.tick, latent_df.cpu_tctl_c; label = SV.pretty_column("cpu_tctl_c"), color = :forestgreen)
+    plot!(p4, latent_df.tick, latent_df.cpu_package_power_w; label = SV.pretty_column("cpu_package_power_w"), color = :brown3)
 
     plot(p1, p2, p3, p4; layout = (4, 1))
 end

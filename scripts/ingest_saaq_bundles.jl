@@ -6,8 +6,7 @@
 using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
 
-include(joinpath(@__DIR__, "..", "src", "Surrogate_Viz.jl"))
-const SV = getfield(@__MODULE__, Symbol("Surrogate_Viz"))
+import Surrogate_Viz as SV
 using CSV
 using DataFrames
 

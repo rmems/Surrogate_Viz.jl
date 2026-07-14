@@ -531,6 +531,63 @@ end
     end
 end
 
+@testset "CUDABackend falls back to CPU when CUDA is absent" begin
+    if !has_cuda()
+        @test_logs (
+            :warn,
+            "CUDABackend requested but CUDA unavailable; using CPUBackend",
+        ) (
+            :warn,
+            "CUDABackend requested but CUDA unavailable; using CPUBackend",
+        ) (
+            :warn,
+            "CUDABackend requested but CUDA unavailable; using CPUBackend",
+        ) begin
+            off_df = DataFrame(
+                timestamp_ms = [0, 100, 200],
+                saaq_delta_q_v15_target = [0.5, 0.6, 0.7],
+                routing_entropy = [0.1, 0.2, 0.3],
+            )
+            on_df = DataFrame(
+                timestamp_ms = [0, 100, 200],
+                saaq_delta_q_v15_target = [1.5, 1.6, 1.7],
+                routing_entropy = [0.4, 0.5, 0.6],
+            )
+
+            joined_cpu, summary_cpu = pairwise_summary(
+                off_df, on_df, :saaq_delta_q_v15_target, :routing_entropy; backend=CPUBackend()
+            )
+            joined_gpu, summary_gpu = pairwise_summary(
+                off_df, on_df, :saaq_delta_q_v15_target, :routing_entropy; backend=CUDABackend()
+            )
+            @test summary_cpu == summary_gpu
+
+            df = DataFrame(
+                timestamp_ms = [0, 100, 200, 300],
+                saaq_delta_q_v15_target = [0.5, 0.6, 0.7, 0.8],
+                routing_entropy = [0.1, 0.2, 0.3, 0.4],
+            )
+            run = Dict{String,Any}("id" => "run_001", "condition" => "baseline")
+            row_cpu = summarise_run(
+                df, run, :saaq_delta_q_v15_target, :routing_entropy; backend=CPUBackend()
+            )
+            row_gpu = summarise_run(
+                df, run, :saaq_delta_q_v15_target, :routing_entropy; backend=CUDABackend()
+            )
+            @test row_cpu == row_gpu
+
+            features = Float32[1 2 3 4;
+                              5 6 7 8;
+                              9 10 11 12]
+            cpu_result = compute_delta_per_tick(features, CPUBackend())
+            gpu_result = compute_delta_per_tick(features, CUDABackend())
+            @test cpu_result == gpu_result
+        end
+    else
+        @test has_cuda() == true
+    end
+end
+
 using Surrogate_Viz: GrokOzempicFailure, GrokOzempicWarning, GrokOzempicReport, GrokOzempicBundle
 using Surrogate_Viz: load_grok_ozempic_bundle, validate_grok_ozempic_bundle
 using Surrogate_Viz: normalize_grok_ozempic_to_tables, normalize_grok_ozempic_dir, normalize_grok_ozempic_bundle_to_tables

@@ -18,7 +18,7 @@
   "validation_status": "synthetic",
   "error": null,
   "telemetry_source": "csv_re4_path_tracing_telemetry",
-  "telemetry_csv_path": "data/telemetry.csv",
+  "telemetry_csv_path": "data/hardware_telemetry.csv",
   "telemetry_row_count": 1000,
   "wraparound_enabled": true,
   "wraparound_loops": 2,

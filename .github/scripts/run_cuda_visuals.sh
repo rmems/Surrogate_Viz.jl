@@ -66,11 +66,11 @@ julia --project=. -e '
   println("Pure-Julia CUDA visual kernel test passed (Grok Build 0.1 model).")
 '
 
-# Optional plot (guarded main(), telemetry_math_logic.txt, no og).
+# Optional plot (guarded main(), math_logic_tick_telemetry.txt, no og).
 # Headless container: xvfb-run (installed above) or env vars so Plots doesn't
 # try to open a real display and exit non-zero.
 export GKSwstype=100
 export MPLBACKEND=Agg
-xvfb-run -a julia plot_latent_space.jl data/telemetry_math_logic.txt /tmp/ci_map.png \
+xvfb-run -a julia plot_latent_space.jl data/math_logic_tick_telemetry.txt /tmp/ci_map.png \
   || echo "plot step done or fell back (xvfb or display not critical for CI)"
 EOF

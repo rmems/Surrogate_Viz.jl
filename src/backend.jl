@@ -12,7 +12,7 @@ end
 function has_cuda()
     try
         cuda_mod = _cuda_module()
-        return getproperty(cuda_mod, :functional)()
+        return Base.invokelatest(getproperty(cuda_mod, :functional))
     catch e
         if e isa ArgumentError || e isa ErrorException || e isa LoadError
             return false

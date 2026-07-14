@@ -24,7 +24,7 @@ const REPORT_PATH = joinpath(OUTPUT_DIR, "full_lineup_saaq1_5_comparison.md")
 const CAMPAIGN = "full_lineup"
 const TELEMETRY_SOURCE = "csv_re4_path_tracing_telemetry"
 const RULE = "SaaqV1_5SqrtRate"
-const EQUATION_SOURCE = "outputs/20260414_194227_v2pNMk/hall_of_fame.csv"
+const EQUATION_SOURCE = "outputs/20260414_194227_v2pNMk/pareto_front.csv"
 const REPEAT_IDX = 0
 
 const MODEL_ORDER = [
@@ -118,21 +118,21 @@ function build_plot(model_slug::AbstractString, off_df::DataFrame, on_df::DataFr
     p1 = plot(
         off_df.timestamp_ms,
         off_df[!, delta_col];
-        label = "control-off",
+        label = SV.pretty_condition("baseline"),
         color = :navy,
-        xlabel = "Timestamp (ms)",
-        ylabel = string(delta_col),
-        title = "$(model_slug) — SAAQ 1.5 $(delta_col)",
+        xlabel = SV.pretty_column("timestamp_ms"),
+        ylabel = SV.pretty_column(delta_col),
+        title = "$(SV.pretty_model(model_slug)) — SAAQ 1.5 $(SV.pretty_column(delta_col))",
         panel_attrs...,
     )
-    plot!(p1, on_df.timestamp_ms, on_df[!, delta_col]; label = "control-on", color = :crimson)
+    plot!(p1, on_df.timestamp_ms, on_df[!, delta_col]; label = SV.pretty_condition("treatment"), color = :crimson)
 
     p2 = plot(
         joined_df.timestamp_ms,
         joined_df.delta_on_minus_off;
-        label = "control-on - control-off",
+        label = "$(SV.pretty_condition("treatment")) - $(SV.pretty_condition("baseline"))",
         color = :darkgreen,
-        xlabel = "Timestamp (ms)",
+        xlabel = SV.pretty_column("timestamp_ms"),
         ylabel = "Delta Difference",
         title = "Pairwise Delta Difference",
         panel_attrs...,
@@ -146,14 +146,14 @@ function build_plot(model_slug::AbstractString, off_df::DataFrame, on_df::DataFr
     p3 = plot(
         off_df.timestamp_ms,
         off_df[!, entropy_col];
-        label = "routing_entropy off",
+        label = "$(SV.pretty_column("routing_entropy")) (off)",
         color = :purple4,
-        xlabel = "Timestamp (ms)",
-        ylabel = string(entropy_col),
+        xlabel = SV.pretty_column("timestamp_ms"),
+        ylabel = SV.pretty_column(entropy_col),
         title = "Routing Entropy",
         panel_attrs...,
     )
-    plot!(p3, on_df.timestamp_ms, on_df[!, entropy_col]; label = "routing_entropy on", color = :orange3)
+    plot!(p3, on_df.timestamp_ms, on_df[!, entropy_col]; label = "$(SV.pretty_column("routing_entropy")) (on)", color = :orange3)
 
     return plot(p1, p2, p3; layout = (3, 1), size = fig_size, dpi = 180)
 end
@@ -204,10 +204,10 @@ function process_model(runs::AbstractVector, model_slug::AbstractString)
 end
 
 function append_model_section!(lines::Vector{String}, result::ModelResult)
-    push!(lines, "## $(result.slug) ($(result.family))")
+    push!(lines, "## $(SV.pretty_model(result.slug)) ($(result.family))")
     push!(lines, "")
-    push!(lines, "- control-off run: `$(result.off_run["id"])`")
-    push!(lines, "- control-on  run: `$(result.on_run["id"])`")
+    push!(lines, "- $(SV.pretty_condition("baseline")) run: `$(result.off_run["id"])`")
+    push!(lines, "- $(SV.pretty_condition("treatment")) run: `$(result.on_run["id"])`")
     push!(lines, "- imported off:    `$(relpath(SV.imported_latent_path(result.off_run), REPO_ROOT))`")
     push!(lines, "- imported on:     `$(relpath(SV.imported_latent_path(result.on_run), REPO_ROOT))`")
     push!(lines, "- delta column:    `$(result.delta_col)`")
@@ -248,7 +248,7 @@ function append_cheat_sheet!(lines::Vector{String}, results::Vector{ModelResult}
         ps = r.pair_summary
         push!(
             lines,
-            "| `$(r.slug)` | `$(r.family)` | $(SV.fmt(ps["mean_delta_on_minus_off"])) | $(SV.fmt(ps["max_abs_delta_on_minus_off"])) | $(SV.fmt(ps["final_delta_on_minus_off"])) |",
+            "| $(SV.pretty_model(r.slug)) | `$(r.family)` | $(SV.fmt(ps["mean_delta_on_minus_off"])) | $(SV.fmt(ps["max_abs_delta_on_minus_off"])) | $(SV.fmt(ps["final_delta_on_minus_off"])) |",
         )
     end
     push!(lines, "")
