@@ -23,6 +23,43 @@ using Surrogate_Viz: pairwise_summary, summarise_run
     @test :to_float64_vec in names(Surrogate_Viz)
     @test :to_int_ms in names(Surrogate_Viz)
     @test :IMPORT_ROOT in names(Surrogate_Viz)
+    @test :pretty_condition in names(Surrogate_Viz)
+    @test :pretty_column in names(Surrogate_Viz)
+    @test :pretty_model in names(Surrogate_Viz)
+    @test :classify_walkers in names(Surrogate_Viz)
+    @test :walker_label in names(Surrogate_Viz)
+end
+
+@testset "human-readable label registry" begin
+    @test pretty_condition("sviz_math_logic") == "Math & Logic"
+    @test pretty_condition("unknown_condition") == "unknown_condition"
+
+    @test pretty_column("avg_pop_firing_rate_hz") == "Population Firing Rate (Hz)"
+    @test pretty_column(:gpu_temp_c) == "GPU Temperature (°C)"
+    @test pretty_column("cpu_tctl_c") == "CPU Temperature (°C)"
+    @test pretty_column("elapsed_us") == "Elapsed Time (μs)"
+    @test pretty_column("unknown_column") == "unknown_column"
+
+    @test pretty_model("olmoe_1b_7b_f16") == "OLMoE 1B-7B"
+    @test pretty_model("unknown_model") == "unknown_model"
+end
+
+@testset "walker behavioral labels" begin
+    tick_data = DataFrame(best_walker = vcat(fill(10, 50), fill(20, 49), [30]))
+    groups = classify_walkers(tick_data; attractor_threshold=0.5, rare_threshold=0.02)
+    groups_by_id = Dict(group.id => group for group in groups)
+
+    @test groups_by_id[10].role == :attractor
+    @test groups_by_id[10].label == "Attractor #10"
+    @test groups_by_id[20].role == :explorer
+    @test groups_by_id[20].label == "Explorer #20"
+    @test groups_by_id[30].role == :rare
+    @test groups_by_id[30].label == "Rare #30"
+    @test walker_label(groups, 20) == "Explorer #20"
+    @test walker_label(groups, 99) == "Walker #99"
+
+    @test isempty(classify_walkers(DataFrame(best_walker = Int[])))
+    @test_throws ErrorException classify_walkers(DataFrame(tick = [1]))
 end
 
 @testset "fmt — -0.0 normalization" begin
