@@ -1,10 +1,10 @@
-const PkgMod = Base.require(Base.PkgId(Base.UUID("44cfe95a-1eb2-52ea-b672-e2afdf69b78f"), "Pkg"))
-PkgMod.activate(@__DIR__)
-const TOML = Base.require(Base.PkgId(Base.UUID("fa267f1f-3847-5f8e-912b-6e1276ff8fca"), "TOML"))
+using Pkg
+Pkg.activate(@__DIR__)
 
 using CSV
 using DataFrames
-const DatesMod = Base.require(Base.PkgId(Base.UUID("ade2ca70-3891-5945-98fb-dc099432e06a"), "Dates"))
+using Dates
+using TOML
 include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
 const SV = getfield(Main, :Surrogate_Viz)
 
@@ -264,7 +264,7 @@ function write_report(results::Vector{ModelResult})
     push!(lines, "- Rule: `$(RULE)`")
     push!(lines, "- Equation source: `$(EQUATION_SOURCE)` (SymbolicRegression discovery)")
     push!(lines, "- Models: $(length(results)) ($(join((r.slug for r in results), ", ")))")
-    push!(lines, "- Generated: `$(DatesMod.format(DatesMod.now(), "yyyy-mm-ddTHH:MM:SS"))`")
+    push!(lines, "- Generated: `$(Dates.format(Dates.now(), "yyyy-mm-ddTHH:MM:SS"))`")
     push!(lines, "")
 
     for r in results
