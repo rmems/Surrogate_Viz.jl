@@ -16,7 +16,17 @@ permissions:
 jobs:
   publish:
     name: Publish Docker Image
-    runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
+    # Runs on a disposable GitHub-hosted VM, not the self-hosted GPU runner.
+    # Building a CUDA image needs no GPU, and this job is the one place in the
+    # repo that holds `packages: write` plus a registry credential at the same
+    # time as `Pkg.instantiate()` (Dockerfile), which can execute build scripts
+    # from the general Julia registry. On the shared self-hosted host — one OS
+    # user, no per-job isolation, several other repositories' runner
+    # credentials on disk — that combination put the token and those
+    # credentials within reach of any compromised dependency. A hosted VM is
+    # torn down after the job, so that exposure does not exist here.
+    runs-on: ubuntu-latest
+    if: github.repository == 'rmems/Surrogate_Viz.jl'
     steps:
       - uses: actions/checkout@v4
 

@@ -17,7 +17,7 @@ jobs:
     name: Build Docker Image
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
+    runs-on: ubuntu-latest
     permissions:
       contents: read
 
@@ -48,11 +48,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-# Grok Build 0.1 model: This workflow handles PR-time Docker verification only.
-# Publishing is moved to `.github/workflows/docker-publish.yml` so PRs do not
-# show an intentionally skipped publish job.
+# This workflow handles PR-time Docker verification only. Publishing lives in
+# `.github/workflows/docker-publish.yml` so PRs do not show an intentionally
+# skipped publish job.
 #
-# The build runs on the self-hosted GPU runner (labels include docker). It
-# exercises `docker build` of the root Dockerfile (nvidia/cuda + Julia 1.12).
-# If this job fails, check the host docker + nvidia-container-toolkit setup
-# for the runner user (see the big comment in julia.yml gpu-preflight).
+# Runs on ubuntu-latest, not the self-hosted GPU runner. Building a CUDA image
+# only needs `docker build` — no GPU is required, since nothing in the image is
+# executed here. Keeping this off the self-hosted box means only jobs that
+# genuinely need the RTX 5080 (test, gpu-preflight, cuda-visuals in julia.yml)
+# run on a host that is shared with several other repositories' runners.
