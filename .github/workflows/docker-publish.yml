@@ -30,6 +30,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Required for `cache-to: type=gha` below — the hosted runner's default
+      # builder uses the "docker" driver, which cannot export a cache.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Set Docker tags
         id: tags
         run: |

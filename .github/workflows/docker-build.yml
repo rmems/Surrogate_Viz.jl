@@ -24,6 +24,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Required for `cache-to: type=gha` below. The default builder on a
+      # GitHub-hosted runner uses the "docker" driver, which cannot export a
+      # cache ("Cache export is not supported for the docker driver"). This
+      # action provisions a docker-container driver, which can. The previous
+      # self-hosted runner happened to have such a builder already configured.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Set Docker tags
         id: tags
         run: |
