@@ -16,9 +16,30 @@ permissions:
 jobs:
   publish:
     name: Publish Docker Image
-    runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
+    # Runs on a disposable GitHub-hosted VM, not the self-hosted GPU runner.
+    # Building a CUDA image needs no GPU, and this job is the one place in the
+    # repo that holds `packages: write` plus a registry credential at the same
+    # time as `Pkg.instantiate()` (Dockerfile:57), which can execute build
+    # scripts from the general Julia registry. On the shared self-hosted host —
+    # one OS user, no per-job isolation, several other repositories' runner
+    # credentials on disk — that combination put the token AND those other
+    # credentials within reach of any compromised dependency.
+    #
+    # To be precise about what moving here does and does not fix: the job's
+    # GITHUB_TOKEN is still present on the VM while the build runs, and
+    # Pkg.instantiate() still executes third-party registry code alongside it.
+    # What goes away is cross-repository credential reach and host persistence
+    # — the exposure is confined to this job's lifetime, and no other
+    # repository's credentials are reachable from it.
+    runs-on: ubuntu-latest
+    if: github.repository == 'rmems/Surrogate_Viz.jl'
     steps:
       - uses: actions/checkout@v4
+
+      # Required for `cache-to: type=gha` below — the hosted runner's default
+      # builder uses the "docker" driver, which cannot export a cache.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
 
       - name: Set Docker tags
         id: tags

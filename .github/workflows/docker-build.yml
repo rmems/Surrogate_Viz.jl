@@ -17,12 +17,20 @@ jobs:
     name: Build Docker Image
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
+    runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
       - uses: actions/checkout@v4
+
+      # Required for `cache-to: type=gha` below. The default builder on a
+      # GitHub-hosted runner uses the "docker" driver, which cannot export a
+      # cache ("Cache export is not supported for the docker driver"). This
+      # action provisions a docker-container driver, which can. The previous
+      # self-hosted runner happened to have such a builder already configured.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
 
       - name: Set Docker tags
         id: tags
@@ -48,11 +56,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-# Grok Build 0.1 model: This workflow handles PR-time Docker verification only.
-# Publishing is moved to `.github/workflows/docker-publish.yml` so PRs do not
-# show an intentionally skipped publish job.
+# This workflow handles PR-time Docker verification only. Publishing lives in
+# `.github/workflows/docker-publish.yml` so PRs do not show an intentionally
+# skipped publish job.
 #
-# The build runs on the self-hosted GPU runner (labels include docker). It
-# exercises `docker build` of the root Dockerfile (nvidia/cuda + Julia 1.12).
-# If this job fails, check the host docker + nvidia-container-toolkit setup
-# for the runner user (see the big comment in julia.yml gpu-preflight).
+# Runs on ubuntu-latest, not the self-hosted GPU runner. `docker build` does
+# execute the image's RUN instructions — including Julia and Pkg.instantiate()
+# (Dockerfile:49,57) — but none of that needs a GPU: Dockerfile:49 explicitly
+# tolerates nvidia-smi being absent. Keeping this off the self-hosted box means
+# only jobs that genuinely need the RTX 5080 (test, gpu-preflight, cuda-visuals
+# in julia.yml) run on a host shared with several other repositories' runners.
