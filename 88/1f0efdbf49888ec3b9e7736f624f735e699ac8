@@ -1,0 +1,22 @@
+.github/workflows/docker-build.yml
+  s_2d5f80fb8407b9::t_afeb1d63288a7f 20
+  s_2d5f80fb8407b9::t_ff7a8fb8758f31 51-53,55-59
+.github/workflows/docker-publish.yml
+  s_2d5f80fb8407b9::t_f8dfafebc80a9b 19-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "881f0efdbf49888ec3b9e7736f624f735e699ac8",
+  "prompts": {},
+  "sessions": {
+    "s_2d5f80fb8407b9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "236ff508-26fa-466a-b4dd-3ff2f464f60f",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Raul Montoya Cardenas <montoyaraul34@gmail.com>"
+    }
+  }
+}
