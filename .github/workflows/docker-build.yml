@@ -60,8 +60,9 @@ jobs:
 # `.github/workflows/docker-publish.yml` so PRs do not show an intentionally
 # skipped publish job.
 #
-# Runs on ubuntu-latest, not the self-hosted GPU runner. Building a CUDA image
-# only needs `docker build` — no GPU is required, since nothing in the image is
-# executed here. Keeping this off the self-hosted box means only jobs that
-# genuinely need the RTX 5080 (test, gpu-preflight, cuda-visuals in julia.yml)
-# run on a host that is shared with several other repositories' runners.
+# Runs on ubuntu-latest, not the self-hosted GPU runner. `docker build` does
+# execute the image's RUN instructions — including Julia and Pkg.instantiate()
+# (Dockerfile:49,57) — but none of that needs a GPU: Dockerfile:49 explicitly
+# tolerates nvidia-smi being absent. Keeping this off the self-hosted box means
+# only jobs that genuinely need the RTX 5080 (test, gpu-preflight, cuda-visuals
+# in julia.yml) run on a host shared with several other repositories' runners.
