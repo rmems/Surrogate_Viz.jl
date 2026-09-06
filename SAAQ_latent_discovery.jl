@@ -6,13 +6,20 @@
 #
 # Outputs go to outputs/<model>/sr_results/<run_id>/.
 
-const PkgMod = Base.require(Base.PkgId(Base.UUID("44cfe95a-1eb2-52ea-b672-e2afdf69b78f"), "Pkg"))
-PkgMod.activate(@__DIR__)
-PkgMod.instantiate()
-const TOML = Base.require(Base.PkgId(Base.UUID("fa267f1f-6049-4f14-aa54-33bafae1ed76"), "TOML"))
+using Pkg
+
+# Only take over the active project when run as a script. Activating (and
+# especially instantiating) at load time would switch the caller's project out
+# from under them when this file is `include`d — which the smoke tests do, and
+# instantiate() would resolve the whole dependency tree on every test run.
+if abspath(PROGRAM_FILE) == @__FILE__
+    Pkg.activate(@__DIR__)
+    Pkg.instantiate()
+end
 
 using CSV
 using DataFrames
+using TOML
 import SymbolicRegression
 include(joinpath(@__DIR__, "src", "Surrogate_Viz.jl"))
 const SV = getfield(Main, :Surrogate_Viz)
@@ -222,4 +229,6 @@ function main()
     end
 end
 
-main()
+if abspath(PROGRAM_FILE) == @__FILE__
+    main()
+end
