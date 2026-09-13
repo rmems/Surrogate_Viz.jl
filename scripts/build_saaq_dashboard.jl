@@ -68,6 +68,20 @@ function html_escape(s)
     return s
 end
 
+# Neutralizes the three characters that break a single-line GFM table cell
+# wrapped in a code span: a bare `|` splits the row into extra columns, a
+# newline starts a new row, and a backtick terminates the code span early.
+# Untrusted upstream manifest values (e.g. telemetry_source) can contain any
+# of these and are rendered inside `...` cells in build_summary_md.
+function md_cell_escape(s)
+    s = replace(string(s), "|" => "\\|")
+    s = replace(s, "`" => "'")
+    s = replace(s, "\r\n" => " ")
+    s = replace(s, "\n" => " ")
+    s = replace(s, "\r" => " ")
+    return s
+end
+
 function fmt_val(v)
     if ismissing(v) || v === missing
         return "&mdash;"
@@ -112,6 +126,13 @@ function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heat
     .badge-synthetic { background: #e8edff; color: #4c56b8; }
     .badge-skipped  { background: #fff8c5; color: #9a6700; }
     .badge-failed   { background: #ffebe9; color: #cf222e; }
+    /* Telemetry provenance — deliberately distinct from the run_status badges
+       above, because they answer different questions. Fabricated telemetry is
+       styled to be hard to miss next to a green "real" run status. */
+    .prov-measured           { background: #dafbe1; color: #1a7f37; }
+    .prov-synthetic          { background: #fff1e5; color: #bc4c00; }
+    .prov-synthetic_fallback { background: #ffebe9; color: #cf222e; border: 1px solid #cf222e; }
+    .prov-unknown            { background: #eaeef2; color: #57606a; }
     .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
     .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 14px 16px; }
     .card-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin-bottom: 4px; }
@@ -144,6 +165,43 @@ function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heat
     n_failed = count(isequal("failed"), runs_df.run_status)
     n_warnings = nrow(warnings_df)
 
+    # Telemetry provenance is a *different axis* from run_status. run_status
+    # says the run completed; provenance says whether its numbers were measured
+    # or synthesised. A run can be `completed` (run_status == real) with
+    # `telemetry_source == synthetic_fallback`, and reporting only run_status
+    # presents fabricated telemetry as measurement.
+    #
+    # Re-derived from the raw telemetry_source column via SV.telemetry_provenance
+    # rather than trusting a pre-computed :telemetry_provenance column. This
+    # table is read from a CSV on disk (runs_table.csv), which can be legacy,
+    # hand-edited, or produced by a normalizer version older than this
+    # classifier — re-deriving from the one raw field makes the classification
+    # correct regardless of what (if anything) that column already says, and
+    # SV.telemetry_provenance already treats `missing`/absent/unrecognised
+    # values as "unknown" rather than throwing or silently miscounting.
+    provenance = hasproperty(runs_df, :telemetry_source) ?
+        [SV.telemetry_provenance(v) for v in runs_df.telemetry_source] :
+        fill("unknown", n_runs)
+    n_measured = count(isequal("measured"), provenance)
+    n_fabricated = count(p -> p in ("synthetic", "synthetic_fallback"), provenance)
+    n_fallback = count(isequal("synthetic_fallback"), provenance)
+    # Runs whose telemetry_source is absent or unrecognised. Counted and shown
+    # explicitly: measured + fabricated + unverified must reconcile to the run
+    # total, or a legacy/unfamiliar source would vanish from the breakdown and
+    # the "of N" denominator would silently overstate what was accounted for.
+    #
+    # This is now an invariant by construction — telemetry_provenance always
+    # returns one of exactly these four strings for any input — rather than a
+    # runtime check on unclean external data, so a plain error() (naming the
+    # actual counts) is more useful here than @assert if it ever did fire.
+    n_unverified = count(isequal("unknown"), provenance)
+    n_measured + n_fabricated + n_unverified == n_runs || error(
+        "build_saaq_dashboard.jl: telemetry provenance counts do not reconcile " *
+        "(measured=$(n_measured) + fabricated=$(n_fabricated) + unverified=$(n_unverified) " *
+        "!= total=$(n_runs)). This should not be possible — telemetry_provenance " *
+        "is total over its input type; please report this as a bug.",
+    )
+
     write(buf, """
     <div class="summary-cards">
       <div class="card">
@@ -160,6 +218,11 @@ function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heat
         <div class="card-label">Synthetic</div>
         <div class="card-value" style="color:#4c56b8">$(n_synth)</div>
         <div class="card-sub">fixture runs</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Measured Telemetry</div>
+        <div class="card-value" style="color:#1a7f37">$(n_measured)</div>
+        <div class="card-sub">of $(n_runs) &middot; $(n_fabricated) fabricated$(n_fallback > 0 ? " (" * string(n_fallback) * " fallback)" : "")$(n_unverified > 0 ? " &middot; " * string(n_unverified) * " unverified" : "")</div>
       </div>
       <div class="card">
         <div class="card-label">Skipped</div>
@@ -215,7 +278,41 @@ function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heat
         write(buf, "<td><span class='badge $(status_class)'>$(status)</span></td>")
         write(buf, "<td>$(fmt_val(row.model_family))</td>")
         write(buf, "<td><code>$(fmt_val(row.saaq_formula_version))</code></td>")
-        write(buf, "<td><code>$(fmt_val(row.telemetry_source))</code></td>")
+        # Mark the telemetry source with its provenance. A bare `csv_*` string
+        # tells a reader nothing about whether the producer actually found that
+        # CSV or silently fell back to synthesising the data.
+        #
+        # Re-derived from the raw value via SV.telemetry_provenance, same as
+        # the summary card above and for the same reason — this table is
+        # loaded from a CSV, not guaranteed to carry an up-to-date
+        # :telemetry_provenance column of its own.
+        #
+        # Resolved once via hasproperty, matching the aggregate card's guard
+        # above: a DataFrameRow throws ArgumentError on a missing *column*
+        # (not just a missing value in a present one), so `runs_table.csv`
+        # with no telemetry_source column at all would otherwise crash every
+        # row here instead of falling through to "unknown".
+        telemetry_source = hasproperty(row, :telemetry_source) ? row.telemetry_source : missing
+        prov = SV.telemetry_provenance(telemetry_source)
+        prov_label = prov == "measured" ? "measured" :
+                     prov == "synthetic" ? "SYNTHETIC" :
+                     prov == "synthetic_fallback" ? "SYNTHETIC FALLBACK" : "UNVERIFIED"
+        # telemetry_source comes from an upstream manifest, so it is untrusted
+        # input to this generated page and must be escaped. `prov` is escaped
+        # too since it reaches a class attribute; it is drawn from a fixed set
+        # today, but escaping costs nothing and keeps the attribute safe if the
+        # classifier ever passes a value through.
+        #
+        # fmt_val's missing/nothing case returns the literal &mdash; entity,
+        # which html_escape(fmt_val(...)) would then escape a second time
+        # (the "&" becomes "&amp;", so "&mdash;" renders as the literal text
+        # "&mdash;" instead of an em dash). Escape the raw value first and
+        # only substitute the placeholder for genuinely absent values, so the
+        # entity is never round-tripped through html_escape.
+        telemetry_html = (telemetry_source === missing || telemetry_source === nothing) ?
+            "&mdash;" : html_escape(string(telemetry_source))
+        write(buf, "<td><code>$(telemetry_html)</code> ")
+        write(buf, "<span class='badge prov-$(html_escape(prov))'>$(html_escape(prov_label))</span></td>")
         write(buf, "<td class='col-repeat'>$(fmt_val(row.repeat_idx)) / $(fmt_val(row.repeat_count))</td>")
         write(buf, "<td class='col-ticks'>$(fmt_val(row.ticks_effective))</td>")
         write(buf, "<td class='col-metrics'>$(n_run_metrics)</td>")
@@ -277,7 +374,21 @@ function build_summary_md(runs_df, metrics_df, warnings_df; date_label)
         run_id = string(row.run_id)
         n_run_metrics = count(isequal(run_id), metrics_df.run_id)
         n_warns = count(isequal(run_id), warnings_df.run_id)
-        write(buf, "| `$(row.run_id)` | $(row.run_status) | $(row.model_family) | `$(row.saaq_formula_version)` | `$(row.telemetry_source)` | $(row.repeat_idx)/$(row.repeat_count) | $(row.ticks_effective) | $(n_run_metrics) | $(n_warns) |\n")
+        # Same missing-column guard as the HTML row renderer above: a
+        # DataFrameRow throws ArgumentError on a column that isn't present at
+        # all (not just a missing value in one that is), so a legacy
+        # runs_table.csv with no telemetry_source column would otherwise crash
+        # markdown generation too.
+        telemetry_source = hasproperty(row, :telemetry_source) ? row.telemetry_source : missing
+        # An absent value must read as "no source recorded" rather than the
+        # literal word "missing" — matching how the HTML table shows an em
+        # dash for the same case. A present value comes from an upstream
+        # manifest, so it is untrusted and must be neutralized against
+        # breaking the table cell it is interpolated into below (see
+        # md_cell_escape).
+        telemetry_display = (telemetry_source === missing || telemetry_source === nothing) ?
+            "—" : md_cell_escape(telemetry_source)
+        write(buf, "| `$(row.run_id)` | $(row.run_status) | $(row.model_family) | `$(row.saaq_formula_version)` | `$(telemetry_display)` | $(row.repeat_idx)/$(row.repeat_count) | $(row.ticks_effective) | $(n_run_metrics) | $(n_warns) |\n")
     end
     write(buf, "\n")
 

@@ -482,7 +482,7 @@ end
     fixture_root = joinpath(@__DIR__, "fixtures", "bundles")
     runs_df, metrics_df, warnings_df = normalize_bundles_dir(fixture_root)
 
-    @test nrow(runs_df) == 6
+    @test nrow(runs_df) == 7
     status_vals = Set(runs_df.run_status)
     @test "real" in status_vals
     @test "synthetic" in status_vals
@@ -496,6 +496,9 @@ end
     @test "test_missing_optional_20260528T120003" in run_ids
     @test "test_unknown_extras_20260528T120004" in run_ids
     @test "test_smokescreen_20260528T130000" in run_ids
+    # Completed run whose telemetry was synthesised upstream — the case that
+    # run_status alone cannot express. See telemetry_provenance_test.jl.
+    @test "synthetic_fallback_run" in run_ids
 
     @test nrow(metrics_df) > 0
 
@@ -849,3 +852,4 @@ end
 end
 
 include("smoke_scripts_test.jl")
+include("telemetry_provenance_test.jl")
