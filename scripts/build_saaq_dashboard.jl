@@ -68,6 +68,20 @@ function html_escape(s)
     return s
 end
 
+# Neutralizes the three characters that break a single-line GFM table cell
+# wrapped in a code span: a bare `|` splits the row into extra columns, a
+# newline starts a new row, and a backtick terminates the code span early.
+# Untrusted upstream manifest values (e.g. telemetry_source) can contain any
+# of these and are rendered inside `...` cells in build_summary_md.
+function md_cell_escape(s)
+    s = replace(string(s), "|" => "\\|")
+    s = replace(s, "`" => "'")
+    s = replace(s, "\r\n" => " ")
+    s = replace(s, "\n" => " ")
+    s = replace(s, "\r" => " ")
+    return s
+end
+
 function fmt_val(v)
     if ismissing(v) || v === missing
         return "&mdash;"
@@ -366,12 +380,14 @@ function build_summary_md(runs_df, metrics_df, warnings_df; date_label)
         # runs_table.csv with no telemetry_source column would otherwise crash
         # markdown generation too.
         telemetry_source = hasproperty(row, :telemetry_source) ? row.telemetry_source : missing
-        # Markdown has no HTML-entity escaping concern, but an absent value
-        # must still read as "no source recorded" rather than the literal
-        # word "missing" — matching how the HTML table shows an em dash for
-        # the same case.
+        # An absent value must read as "no source recorded" rather than the
+        # literal word "missing" — matching how the HTML table shows an em
+        # dash for the same case. A present value comes from an upstream
+        # manifest, so it is untrusted and must be neutralized against
+        # breaking the table cell it is interpolated into below (see
+        # md_cell_escape).
         telemetry_display = (telemetry_source === missing || telemetry_source === nothing) ?
-            "—" : telemetry_source
+            "—" : md_cell_escape(telemetry_source)
         write(buf, "| `$(row.run_id)` | $(row.run_status) | $(row.model_family) | `$(row.saaq_formula_version)` | `$(telemetry_display)` | $(row.repeat_idx)/$(row.repeat_count) | $(row.ticks_effective) | $(n_run_metrics) | $(n_warns) |\n")
     end
     write(buf, "\n")
