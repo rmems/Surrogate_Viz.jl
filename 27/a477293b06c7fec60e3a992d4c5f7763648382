@@ -1,0 +1,20 @@
+scripts/build_saaq_dashboard.jl
+  s_2d5f80fb8407b9::t_ed5fac53dbfe18 275-282,298-299
+  s_2d5f80fb8407b9::t_2e80235c5cd02f 363-369
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "27a477293b06c7fec60e3a992d4c5f7763648382",
+  "prompts": {},
+  "sessions": {
+    "s_2d5f80fb8407b9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "236ff508-26fa-466a-b4dd-3ff2f464f60f",
+        "model": "unknown"
+      },
+      "human_author": "Raul Cardenas Montoya <montoyaraul34@gmail.com>"
+    }
+  }
+}
