@@ -366,7 +366,13 @@ function build_summary_md(runs_df, metrics_df, warnings_df; date_label)
         # runs_table.csv with no telemetry_source column would otherwise crash
         # markdown generation too.
         telemetry_source = hasproperty(row, :telemetry_source) ? row.telemetry_source : missing
-        write(buf, "| `$(row.run_id)` | $(row.run_status) | $(row.model_family) | `$(row.saaq_formula_version)` | `$(telemetry_source)` | $(row.repeat_idx)/$(row.repeat_count) | $(row.ticks_effective) | $(n_run_metrics) | $(n_warns) |\n")
+        # Markdown has no HTML-entity escaping concern, but an absent value
+        # must still read as "no source recorded" rather than the literal
+        # word "missing" — matching how the HTML table shows an em dash for
+        # the same case.
+        telemetry_display = (telemetry_source === missing || telemetry_source === nothing) ?
+            "—" : telemetry_source
+        write(buf, "| `$(row.run_id)` | $(row.run_status) | $(row.model_family) | `$(row.saaq_formula_version)` | `$(telemetry_display)` | $(row.repeat_idx)/$(row.repeat_count) | $(row.ticks_effective) | $(n_run_metrics) | $(n_warns) |\n")
     end
     write(buf, "\n")
 
