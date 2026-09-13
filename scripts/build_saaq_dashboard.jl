@@ -272,7 +272,14 @@ function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heat
         # the summary card above and for the same reason — this table is
         # loaded from a CSV, not guaranteed to carry an up-to-date
         # :telemetry_provenance column of its own.
-        prov = SV.telemetry_provenance(row.telemetry_source)
+        #
+        # Resolved once via hasproperty, matching the aggregate card's guard
+        # above: a DataFrameRow throws ArgumentError on a missing *column*
+        # (not just a missing value in a present one), so `runs_table.csv`
+        # with no telemetry_source column at all would otherwise crash every
+        # row here instead of falling through to "unknown".
+        telemetry_source = hasproperty(row, :telemetry_source) ? row.telemetry_source : missing
+        prov = SV.telemetry_provenance(telemetry_source)
         prov_label = prov == "measured" ? "measured" :
                      prov == "synthetic" ? "SYNTHETIC" :
                      prov == "synthetic_fallback" ? "SYNTHETIC FALLBACK" : "UNVERIFIED"
@@ -288,8 +295,8 @@ function build_dashboard_html(runs_df, metrics_df, warnings_df; date_label, heat
         # "&mdash;" instead of an em dash). Escape the raw value first and
         # only substitute the placeholder for genuinely absent values, so the
         # entity is never round-tripped through html_escape.
-        telemetry_html = (row.telemetry_source === missing || row.telemetry_source === nothing) ?
-            "&mdash;" : html_escape(string(row.telemetry_source))
+        telemetry_html = (telemetry_source === missing || telemetry_source === nothing) ?
+            "&mdash;" : html_escape(string(telemetry_source))
         write(buf, "<td><code>$(telemetry_html)</code> ")
         write(buf, "<span class='badge prov-$(html_escape(prov))'>$(html_escape(prov_label))</span></td>")
         write(buf, "<td class='col-repeat'>$(fmt_val(row.repeat_idx)) / $(fmt_val(row.repeat_count))</td>")
@@ -353,7 +360,13 @@ function build_summary_md(runs_df, metrics_df, warnings_df; date_label)
         run_id = string(row.run_id)
         n_run_metrics = count(isequal(run_id), metrics_df.run_id)
         n_warns = count(isequal(run_id), warnings_df.run_id)
-        write(buf, "| `$(row.run_id)` | $(row.run_status) | $(row.model_family) | `$(row.saaq_formula_version)` | `$(row.telemetry_source)` | $(row.repeat_idx)/$(row.repeat_count) | $(row.ticks_effective) | $(n_run_metrics) | $(n_warns) |\n")
+        # Same missing-column guard as the HTML row renderer above: a
+        # DataFrameRow throws ArgumentError on a column that isn't present at
+        # all (not just a missing value in one that is), so a legacy
+        # runs_table.csv with no telemetry_source column would otherwise crash
+        # markdown generation too.
+        telemetry_source = hasproperty(row, :telemetry_source) ? row.telemetry_source : missing
+        write(buf, "| `$(row.run_id)` | $(row.run_status) | $(row.model_family) | `$(row.saaq_formula_version)` | `$(telemetry_source)` | $(row.repeat_idx)/$(row.repeat_count) | $(row.ticks_effective) | $(n_run_metrics) | $(n_warns) |\n")
     end
     write(buf, "\n")
 
