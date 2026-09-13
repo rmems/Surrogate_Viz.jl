@@ -18,11 +18,11 @@ jobs:
     # GPU runner, and also covers fork PRs.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: julia-actions/setup-julia@4c0cb0fce8556fdb04a90347310e5db8b1f98fb9 # v2.7.0
         with:
           version: "1.12"
-      - uses: julia-actions/cache@v2
+      - uses: julia-actions/cache@d10a6fd8f31b12404a54613ebad242900567f2b9 # v2.1.0
       - name: Instantiate
         run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
       - name: Run tests
@@ -35,7 +35,36 @@ jobs:
       github.event_name == 'push' ||
       github.event.pull_request.head.repo.full_name == github.repository
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Scope the Julia depot to this job
+        # Resolve packages into RUNNER_TEMP rather than the runner account's
+        # shared ~/.julia. That account hosts several repositories' runners,
+        # so a tampered package resolved by any one of them would otherwise
+        # persist in the shared depot for every later job on this host. See
+        # .github/RUNNER.md for the full trust boundary.
+        #
+        # A previous version of this sited the depot one level above the
+        # checkout so it would persist and be reused between runs. That is
+        # unsafe on this host: this repo's runner registration has, in
+        # practice, ended up with two listener processes bound to the same
+        # `_work` tree at once (see .github/RUNNER.md), and two concurrent
+        # `Pkg.instantiate()` calls writing into the same persistent depot
+        # path can corrupt its package/registry state. RUNNER_TEMP is an
+        # official Actions runner variable, documented as emptied before and
+        # after every job, so each job run gets an isolated depot with no
+        # cross-job corruption risk and no manual cleanup — at the cost of a
+        # full instantiate + precompile on every run instead of reusing a
+        # warm cache.
+        #
+        # Set via $GITHUB_ENV rather than a job-level `env:` block. RUNNER_TEMP
+        # is a real shell environment variable, but job-level `env:` values only
+        # expand `${{ }}` GitHub Actions expressions, not shell variables — and
+        # `${{ runner.temp }}` there carries the same risk already proven for
+        # `${{ runner.workspace }}`, which made this entire workflow fail to
+        # parse (the run showed up as ".github/workflows/julia.yml: failure"
+        # with no jobs at all) when it was used in this exact job-level `env:`
+        # block.
+        run: echo "JULIA_DEPOT_PATH=${RUNNER_TEMP}/julia_depot" >> "$GITHUB_ENV"
       - name: Instantiate with CUDA
         run: julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.add("CUDA")'
       - name: Run tests
@@ -55,7 +84,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Host GPU/Docker preflight
         run: |
           set -eux
@@ -191,7 +220,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Run CUDA + Julia 1.12 visual kernel tests inside pinned nvidia/cuda container
         run: |
           # Make sure the script is executable (in case git checkout didn't preserve mode)
