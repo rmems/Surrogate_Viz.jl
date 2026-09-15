@@ -63,7 +63,15 @@ julia --project=. -e '
   edges, counts = walker_density_bins_and_counts(df.best_walker; n_bins=32, max_walker=2047)
   println("CUDA walker density histogram: ", length(counts), " bins, sum=", sum(counts))
   @assert length(counts) == 32
-  println("Pure-Julia CUDA visual kernel test passed (Grok Build 0.1 model).")
+  raster = prepare_path_raster(df.tick, df.best_walker; n_tick_bins=32, n_walker_bins=16, max_walker=2047)
+  println("CUDA path raster: ", size(raster.counts), " sum=", sum(raster.counts))
+  @assert sum(raster.counts) == 100
+  @assert all(isfinite, raster.counts)
+  overlay = prepare_spike_overlay(df.tick, df.best_walker, Float64.(df.best_walker); n_tick_bins=32, n_walker_bins=16, max_walker=2047)
+  println("CUDA spike overlay: ", size(overlay.intensity), " max=", maximum(overlay.intensity))
+  @assert all(isfinite, overlay.intensity)
+  @assert count(isnan, overlay.intensity) == 0
+  println("Pure-Julia CUDA visual kernel test passed (Grok Build 0.1 model, RM-62 path+spike).")
 '
 
 # Optional plot (guarded main(), math_logic_tick_telemetry.txt, no og).

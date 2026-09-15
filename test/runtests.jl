@@ -28,6 +28,9 @@ using Surrogate_Viz: pairwise_summary, summarise_run
     @test :pretty_model in names(Surrogate_Viz)
     @test :classify_walkers in names(Surrogate_Viz)
     @test :walker_label in names(Surrogate_Viz)
+    @test :prepare_path_raster in names(Surrogate_Viz)
+    @test :prepare_spike_overlay in names(Surrogate_Viz)
+    @test :is_finite_visual in names(Surrogate_Viz)
 end
 
 @testset "human-readable label registry" begin
@@ -750,6 +753,130 @@ end
     # Exactly one dispatch helper — the two public entry points must not grow
     # their own copies of the selection logic again.
     @test count(_ -> true, eachmatch(r"function _walker_histogram_dispatch", kernels_src)) == 1
+    @test occursin("function prepare_path_raster", kernels_src)
+    @test occursin("function prepare_spike_overlay", kernels_src)
+end
+
+@testset "is_finite_visual — quiet ticks vs NaN" begin
+    @test is_finite_visual(0.0)
+    @test is_finite_visual(1.0)
+    @test is_finite_visual(32)
+    @test !is_finite_visual(NaN)
+    @test !is_finite_visual(Inf)
+    @test !is_finite_visual(-Inf)
+    @test !is_finite_visual(missing)
+    @test !is_finite_visual("NaN")
+end
+
+@testset "prepare_path_raster — occupancy, NaN skip, CPUBackend" begin
+    ticks = [1, 2, 3, 4]
+    walkers = [0, 1, 6, 7]
+    raster = prepare_path_raster(ticks, walkers, CPUBackend(); n_tick_bins=4, n_walker_bins=4, max_walker=7)
+
+    @test length(raster.tick_edges) == 5
+    @test length(raster.walker_edges) == 5
+    @test size(raster.counts) == (4, 4)
+    @test sum(raster.counts) == 4
+    @test all(>=(0), raster.counts)
+    @test raster.walker_edges[1] == 0
+    @test raster.walker_edges[end] == 7
+
+    # Non-finite tick/walker pairs are dropped, not rasterized as artifacts.
+    dirty = prepare_path_raster(
+        [1.0, NaN, 3.0, Inf],
+        [0.0, 1.0, 6.0, 7.0],
+        CPUBackend();
+        n_tick_bins=4, n_walker_bins=4, max_walker=7,
+    )
+    @test sum(dirty.counts) == 2
+    @test all(isfinite, dirty.counts)
+
+    empty_raster = prepare_path_raster(Int[], Int[], CPUBackend(); n_tick_bins=4, n_walker_bins=4, max_walker=7)
+    @test sum(empty_raster.counts) == 0
+    @test size(empty_raster.counts) == (4, 4)
+
+    @test_throws ErrorException prepare_path_raster([1, 2], [0], CPUBackend())
+end
+
+@testset "prepare_spike_overlay — NaN-robust mean, quiet zeros" begin
+    ticks = [1, 2, 3, 4]
+    walkers = [0, 0, 7, 7]
+    # Two visits in the first walker bin: 10 Hz and a quiet 0 Hz tick.
+    # Last bin: a real spike and a literal NaN (corinth-style hole).
+    weights = [10.0, 0.0, 5.0, NaN]
+    overlay = prepare_spike_overlay(
+        ticks, walkers, weights, CPUBackend();
+        n_tick_bins=4, n_walker_bins=4, max_walker=7,
+    )
+
+    @test size(overlay.intensity) == (4, 4)
+    @test all(isfinite, overlay.intensity)
+    @test count(isnan, overlay.intensity) == 0
+    @test all(>=(0), overlay.intensity)
+
+    # A NaN sibling in the same bin must not poison the finite sample.
+    same_bin = prepare_spike_overlay(
+        [1, 1], [0, 0], [5.0, NaN], CPUBackend();
+        n_tick_bins=1, n_walker_bins=1, max_walker=7,
+    )
+    @test same_bin.intensity[1, 1] == 5.0
+
+    # Occupancy fallback (walker-as-spike) when no firing series is supplied.
+    visits = prepare_spike_overlay(ticks, walkers, CPUBackend(); n_tick_bins=4, n_walker_bins=4, max_walker=7)
+    @test sum(visits.intensity) > 0
+    @test all(isfinite, visits.intensity)
+
+    # All-NaN weights → a zero grid, never NaN cells.
+    nan_only = prepare_spike_overlay(
+        [1, 2], [0, 7], [NaN, Inf], CPUBackend();
+        n_tick_bins=2, n_walker_bins=2, max_walker=7,
+    )
+    @test all(==(0.0), nan_only.intensity)
+    @test all(isfinite, nan_only.intensity)
+
+    @test_throws ErrorException prepare_spike_overlay([1, 2], [0, 1], [1.0], CPUBackend())
+end
+
+@testset "path raster / spike overlay — GPU fallback is announced" begin
+    ticks = [1, 2, 3]
+    walkers = [0, 3, 7]
+    if !has_cuda()
+        @test_logs (:warn, r"CUDA is not functional") match_mode = :any begin
+            prepare_path_raster(ticks, walkers; n_tick_bins=4, n_walker_bins=4, max_walker=7)
+        end
+        @test_logs (:warn, r"CUDA is not functional") match_mode = :any begin
+            prepare_spike_overlay(ticks, walkers, [1.0, 0.0, 2.0]; n_tick_bins=4, n_walker_bins=4, max_walker=7)
+        end
+        cpu_forced = prepare_path_raster(ticks, walkers, CPUBackend(); n_tick_bins=4, n_walker_bins=4, max_walker=7)
+        @test sum(cpu_forced.counts) == 3
+    else
+        cpu = prepare_path_raster(ticks, walkers, CPUBackend(); n_tick_bins=4, n_walker_bins=4, max_walker=7)
+        gpu = prepare_path_raster(ticks, walkers, CUDABackend(); n_tick_bins=4, n_walker_bins=4, max_walker=7)
+        @test cpu.counts == gpu.counts
+        cpu_s = prepare_spike_overlay(ticks, walkers, [1.0, 0.0, 4.0], CPUBackend(); n_tick_bins=4, n_walker_bins=4, max_walker=7)
+        gpu_s = prepare_spike_overlay(ticks, walkers, [1.0, 0.0, 4.0], CUDABackend(); n_tick_bins=4, n_walker_bins=4, max_walker=7)
+        @test cpu_s.intensity ≈ gpu_s.intensity
+        @test all(isfinite, gpu_s.intensity)
+    end
+end
+
+@testset "first OLMoE math_logic tick raster — no NaN in grids" begin
+    path = joinpath(@__DIR__, "..", "data", "math_logic_tick_telemetry.txt")
+    @test isfile(path)
+    ticks = Int[]
+    walkers = Int[]
+    for line in eachline(path)
+        m = match(r"^tick=(\d+)\s+best_walker=(\d+)", line)
+        m === nothing && continue
+        push!(ticks, parse(Int, m.captures[1]))
+        push!(walkers, parse(Int, m.captures[2]))
+    end
+    @test length(ticks) == 10000
+    raster = prepare_path_raster(ticks, walkers, CPUBackend(); n_tick_bins=64, n_walker_bins=32, max_walker=2047)
+    @test sum(raster.counts) == 10000
+    overlay = prepare_spike_overlay(ticks, walkers, CPUBackend(); n_tick_bins=64, n_walker_bins=32, max_walker=2047)
+    @test all(isfinite, overlay.intensity)
+    @test count(isnan, overlay.intensity) == 0
 end
 
 using Surrogate_Viz: GrokOzempicFailure, GrokOzempicWarning, GrokOzempicReport, GrokOzempicBundle
