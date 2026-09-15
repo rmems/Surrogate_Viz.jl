@@ -119,7 +119,10 @@ function build_dashboard(df::DataFrame; firing=nothing, use_cuda::Bool=true)
         title="SNN Routing Path Over Time$(gpu_label)",
         xlabel=SV.pretty_column("tick"),
         ylabel=SV.pretty_column("best_walker"),
-        ylims=(2047, 0),
+        # GR heatmaps cannot use ylims=(2047, 0) (GKS memory error). yflip
+        # keeps the original first-exp orientation: high walker indices at top.
+        yflip=true,
+        ylims=(0, 2047),
         color=:hot,
         colorbar=true,
         legend=false,
@@ -162,7 +165,8 @@ function build_dashboard(df::DataFrame; firing=nothing, use_cuda::Bool=true)
         title=overlay_title,
         xlabel=SV.pretty_column("tick"),
         ylabel=SV.pretty_column("best_walker"),
-        ylims=(2047, 0),
+        yflip=true,
+        ylims=(0, 2047),
         color=:inferno,
         colorbar=true,
         clims=(0, max(maximum(overlay.intensity), eps(Float64))),
