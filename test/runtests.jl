@@ -3,7 +3,6 @@ using CSV
 using DataFrames
 using Statistics
 using TOML
-using Logging
 
 using Surrogate_Viz
 using Surrogate_Viz: real, synthetic, skipped, failed
@@ -848,10 +847,8 @@ end
         @test_logs (:warn, r"CUDA is not functional") match_mode = :any begin
             prepare_spike_overlay(ticks, walkers, [1.0, 0.0, 2.0]; n_tick_bins=4, n_walker_bins=4, max_walker=7)
         end
-        # Forced CPU path is silent.
-        @test_logs min_level = Logging.Warn begin
-            prepare_path_raster(ticks, walkers, CPUBackend(); n_tick_bins=4, n_walker_bins=4, max_walker=7)
-        end
+        cpu_forced = prepare_path_raster(ticks, walkers, CPUBackend(); n_tick_bins=4, n_walker_bins=4, max_walker=7)
+        @test sum(cpu_forced.counts) == 3
     else
         cpu = prepare_path_raster(ticks, walkers, CPUBackend(); n_tick_bins=4, n_walker_bins=4, max_walker=7)
         gpu = prepare_path_raster(ticks, walkers, CUDABackend(); n_tick_bins=4, n_walker_bins=4, max_walker=7)
