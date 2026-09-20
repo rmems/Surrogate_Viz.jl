@@ -73,12 +73,12 @@ end
 to_float64_vec(col) = Float64[Float64(v) for v in skipmissing(col)]
 to_int_ms(v) = Int(round(Float64(v)))
 
-# Grok Build 0.1 model: re-export the new pure-Julia CUDA visual kernels
-# (walker density histogram etc.) for use by plot_latent_space.jl and related
-# when CUDA is available on the target (RTX 5080 / sm_120). These are the
-# kernels added for the combined #43 visuals + #44 runner PR. They are 100%
-# Julia (CUDA.jl) — corinth-canal inspiration is read-only.
-export walker_density_bins_and_counts  # safe public API; uses the CUDA-backed path when CUDA is installed and functional
+# Grok Build 0.1 model: re-export the pure-Julia CUDA visual kernels used by
+# plot_latent_space.jl (Linear RM-62 / GH#43). Walker density shipped in #45;
+# path raster + spike overlay complete the PNG visual set. 100% Julia
+# (CUDA.jl) — corinth-canal inspiration is read-only.
+export walker_density_bins_and_counts  # CUDA-backed when CUDA is installed and functional
+export prepare_path_raster, prepare_spike_overlay, is_finite_visual
 
 function summarise_run(df::DataFrame, run::Dict{String,<:Any}, delta_col::Symbol, entropy_col::Union{Nothing,Symbol};
     backend::ComputeBackend=CPUBackend())
