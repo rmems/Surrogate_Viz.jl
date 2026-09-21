@@ -61,7 +61,11 @@ end
     # `abspath(PROGRAM_FILE) == @__FILE__` guard in each script must be false
     # here. If a guard were missing, including the script would run its main()
     # and fail on missing data rather than returning a module.
-    for script in ("import_corinth_runs.jl", "SAAQ_latent_discovery.jl")
+    for script in (
+        "import_corinth_runs.jl",
+        "SAAQ_latent_discovery.jl",
+        "SAAQ_quality_discovery.jl",
+    )
         @testset "$script" begin
             # Assign outside @test so a load failure surfaces as one error on
             # this line, not as a cascade of `m not defined` on every assertion
@@ -104,6 +108,7 @@ end
     for script in (
         "import_corinth_runs.jl",
         "SAAQ_latent_discovery.jl",
+        "SAAQ_quality_discovery.jl",
         "plot_latent_space.jl",
     )
         src = read(joinpath(REPO_ROOT, script), String)
@@ -120,7 +125,11 @@ end
     # Base.require(Base.PkgId(Base.UUID(...))) with a hand-typed UUID; one of
     # them was wrong and the script could not load at all. Keep that idiom out
     # of the scripts these tests cover.
-    for script in ("import_corinth_runs.jl", "SAAQ_latent_discovery.jl")
+    for script in (
+        "import_corinth_runs.jl",
+        "SAAQ_latent_discovery.jl",
+        "SAAQ_quality_discovery.jl",
+    )
         src = read(joinpath(REPO_ROOT, script), String)
         @test !occursin("Base.PkgId", src)
     end
