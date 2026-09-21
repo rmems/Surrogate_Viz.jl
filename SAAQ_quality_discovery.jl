@@ -22,7 +22,7 @@
 # Environment:
 #   QUALITY_CSV    (required) path to the quality CSV
 #   TARGET_COL     default "reconstruction_cosine"
-#   FEATURE_COLS   default "gif_threshold,rms,kurtosis,mean_abs,std,sparsity"
+#   FEATURE_COLS   default "gif_threshold,rms,kurtosis,mean_abs,std"
 #   SR_ITERATIONS  default "30"; 0 = dry run (validate + manifest only)
 #   OUT_DIR        default outputs/quality_discovery/<csv-stem>/
 #
@@ -51,14 +51,16 @@ const REPO_ROOT = @__DIR__
 # Signals that exist at quantization time in the Part-1 sweep CSV. A CSV that
 # has been outer-joined with latent telemetry can additionally offer
 # :avg_pop_firing_rate_hz, :membrane_dv_dt, :routing_entropy — name them in
-# FEATURE_COLS and they are validated like any other column.
+# FEATURE_COLS and they are validated like any other column. `sparsity` is
+# deliberately NOT a default: it is a τ-outcome, and fitting cosine against it
+# is nearly-trivial algebra — leakage, not discovery. Opt back in via
+# FEATURE_COLS if you want the tradeoff curve.
 const DEFAULT_FEATURE_COLS = [
     :gif_threshold,
     :rms,
     :kurtosis,
     :mean_abs,
     :std,
-    :sparsity,
 ]
 
 const DEFAULT_TARGET_COL = :reconstruction_cosine
@@ -85,7 +87,10 @@ end
 # or w == 0, where the metric is honestly undefined rather than zero), and NaN
 # kurtosis for constant tensors. equation_search cannot ingest non-finite X.
 function drop_nonfinite_rows(df::DataFrame, cols::Vector{Symbol})
-    keep = reduce(.&, (isfinite.(Float64.(df[!, col])) for col in cols))
+    keep = reduce(.&, (
+        broadcast(v -> !ismissing(v) && isfinite(Float64(v)), df[!, col])
+        for col in cols
+    ))
     n_dropped = count(.!keep)
     n_dropped > 0 && println("Dropped $(n_dropped) row(s) with non-finite values in $(join(string.(cols), ", "))")
     return df[keep, :]
@@ -149,7 +154,8 @@ function main()
     println("Feature matrix: $(size(X)) rows=$(size(X, 2)), features=$(size(X, 1))")
     println("Target vector: $(length(y)) samples ($(target_col))")
 
-    out_dir = get(ENV, "OUT_DIR", out_dir_for(csv_path))
+    # get() would evaluate out_dir_for eagerly even when OUT_DIR is set.
+    out_dir = haskey(ENV, "OUT_DIR") ? ENV["OUT_DIR"] : out_dir_for(csv_path)
     # A rerun (or a dry run) must not leave an older pareto_front.csv paired
     # with this run's manifest — clear it before writing new metadata.
     let stale = joinpath(out_dir, "pareto_front.csv")
