@@ -43,6 +43,7 @@ end
 
 using CSV
 using DataFrames
+import JSON
 import SymbolicRegression
 
 const REPO_ROOT = @__DIR__
@@ -79,13 +80,14 @@ function build_feature_matrix(df::DataFrame, features::Vector{Symbol}, target::S
     return X, y
 end
 
-# Rows with a non-finite target carry no information for the fit — the sweep
-# emits NaN cosine for degenerate tensors (nothing fires, or w == 0), where
-# the metric is honestly undefined rather than zero.
-function drop_nonfinite_target(df::DataFrame, target::Symbol)
-    keep = isfinite.(Float64.(df[!, target]))
+# Rows with a non-finite value in any selected column carry no information for
+# the fit — the sweep emits NaN cosine for degenerate tensors (nothing fires,
+# or w == 0, where the metric is honestly undefined rather than zero), and NaN
+# kurtosis for constant tensors. equation_search cannot ingest non-finite X.
+function drop_nonfinite_rows(df::DataFrame, cols::Vector{Symbol})
+    keep = reduce(.&, (isfinite.(Float64.(df[!, col])) for col in cols))
     n_dropped = count(.!keep)
-    n_dropped > 0 && println("Dropped $(n_dropped) row(s) with non-finite $(target)")
+    n_dropped > 0 && println("Dropped $(n_dropped) row(s) with non-finite values in $(join(string.(cols), ", "))")
     return df[keep, :]
 end
 
@@ -93,7 +95,7 @@ function out_dir_for(csv_path::AbstractString)
     stem = splitext(basename(csv_path))[1]
     # Path components must not contain separators or traversal — refuse odd
     # names rather than sanitizing silently.
-    occursin(r"^[A-Za-z0-9._-]+$", stem) ||
+    (occursin(r"^[A-Za-z0-9._-]+$", stem) && !occursin(r"^\.+$", stem)) ||
         error("CSV basename $(stem) is not a safe output directory component")
     return joinpath(REPO_ROOT, "outputs", "quality_discovery", stem)
 end
@@ -118,16 +120,7 @@ function write_metadata(out_dir::AbstractString;
         "parsimony" => 0.01,
     )
     open(joinpath(out_dir, "sr_manifest.json"), "w") do io
-        println(io, "{")
-        items = collect(pairs(meta))
-        for (i, (k, v)) in enumerate(items)
-            val = v isa Vector ? (isempty(v) ? "[]" : "[\"" * join(string.(v), "\",\"") * "\"]") :
-                  v isa Bool ? (v ? "true" : "false") :
-                  v isa Number ? string(v) :
-                  "\"" * replace(replace(string(v), "\\" => "\\\\"), "\"" => "\\\"") * "\""
-            println(io, "  \"$(k)\": $(val)$(i < length(items) ? "," : "")")
-        end
-        println(io, "}")
+        JSON.print(io, meta, 2)
     end
     return meta
 end
@@ -142,17 +135,26 @@ function main()
         v === nothing ? DEFAULT_FEATURE_COLS : parse_symbol_list(v)
     end
     target_col = Symbol(get(ENV, "TARGET_COL", string(DEFAULT_TARGET_COL)))
+    target_col in feature_cols &&
+        error("TARGET_COL $(target_col) also appears in FEATURE_COLS — a circular self-fit")
     niterations = parse(Int, get(ENV, "SR_ITERATIONS", "30"))
+    niterations >= 0 || error("SR_ITERATIONS must be >= 0 (0 = dry run), got $(niterations)")
 
     df = CSV.read(csv_path, DataFrame)
     validate_columns(df, vcat(feature_cols, [target_col]))
-    df = drop_nonfinite_target(df, target_col)
+    df = drop_nonfinite_rows(df, vcat(feature_cols, [target_col]))
+    nrow(df) > 0 || error("No usable rows in $(csv_path) after dropping non-finite values")
 
     X, y = build_feature_matrix(df, feature_cols, target_col)
     println("Feature matrix: $(size(X)) rows=$(size(X, 2)), features=$(size(X, 1))")
     println("Target vector: $(length(y)) samples ($(target_col))")
 
     out_dir = get(ENV, "OUT_DIR", out_dir_for(csv_path))
+    # A rerun (or a dry run) must not leave an older pareto_front.csv paired
+    # with this run's manifest — clear it before writing new metadata.
+    let stale = joinpath(out_dir, "pareto_front.csv")
+        isfile(stale) && rm(stale)
+    end
     write_metadata(out_dir;
         csv_path = csv_path,
         feature_cols = feature_cols,
