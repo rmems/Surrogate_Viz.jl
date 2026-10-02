@@ -46,9 +46,10 @@ GPU-only (self-hosted): `Pkg.add("CUDA"); Pkg.test()` and `bash .github/scripts/
 
 ## Conventions visible in the repo
 
-- One-way data flow with corinth-canal (README "Repo Separation"): simulator outputs land under
-  `data/<model>/`, and generated artifacts go under `outputs/<model>/{dashboards,sr_results}/`.
-  Never edit simulator code or commit raw simulator CSVs from this side.
+- One-way data flow with corinth-canal (README "Repo Separation"): imported simulator runs land
+  under `data/corinth_runs/<model>/<telemetry_source>/<condition>/<run_id>/` (`IMPORT_ROOT` in
+  `src/Surrogate_Viz.jl`), and generated artifacts go under `outputs/<model>/`. Simulator code
+  belongs to corinth-canal, so make simulator changes there rather than here.
 - The model roster is declared once in the label registry (`src/labels.jl`).
 - GitHub Actions are pinned to commit SHAs. Commit subjects use Conventional Commits (`feat:`,
   `fix:`, `ci:`) with the PR number.
