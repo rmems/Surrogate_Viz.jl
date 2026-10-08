@@ -1,0 +1,4 @@
+{
+  "name": "Surrogate_Viz.jl",
+  "install": "bash .cursor/install.sh"
+}
