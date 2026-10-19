@@ -42,7 +42,7 @@ There is no formatter config or lint gate in the repo.
 - CUDA is optional: never add it to `[deps]`; it stays a weak dependency behind `CUDABackendExt`. CPU must keep working, and `CUDABackend` falls back to CPU with a warning.
 - `[workspace]` lists `dev` and `scripts`; both resolve `Surrogate_Viz` through `[sources]` path `..`.
 - GitHub Actions are pinned to commit SHAs with version comments. Keep self-hosted jobs behind the same-repository `if:` guard.
-- `data/corinth_runs/*`, `outputs/*` (except `outputs/root_artifacts/`), `/*.csv`, `/*.json`, `/*.png`, `/*.txt` and `data/selected_runs.toml` are gitignored. Do not commit generated output.
+- `data/corinth_runs/*`, `outputs/*` (except `outputs/root_artifacts/`), `/*.csv`, `/*.json`, `/*.png`, `/*.txt` and `data/selected_runs.toml` are gitignored for new files. Some artifacts are already tracked anyway (20 files under `outputs/`, plus `data/corinth_runs/imported_runs_index.csv`), and ignore rules do not stop git from recording changes to tracked files. After a script run, check `git status` and do not commit regenerated output over them.
 
 ## Gotchas
 
