@@ -17,7 +17,7 @@ Run from the repo root. "Verified" means it ran successfully in a fresh checkout
 | `julia --project=. scripts/build_saaq_dashboard.jl <normalized_dir> <report_dir>` | verified (on the ingest output above) |
 | `julia --project=. scripts/validate_grok_ozempic_bundle.jl test/fixtures/grok_ozempic/pass/` | verified |
 | `julia --project=. scripts/ingest_grok_ozempic_bundles.jl test/fixtures/grok_ozempic/ <out_dir>` | verified |
-| `julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.add("CUDA")'` then `Pkg.test()` | not run (needs a CUDA GPU; the self-hosted `test` job does this) |
+| `julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.add("CUDA")'` then `Pkg.test()` | not run (needs a CUDA GPU; the self-hosted `test` job runs it in a throwaway checkout. `Pkg.add` can edit `Project.toml`, so locally use a temporary copy or revert with `git checkout Project.toml` and `git diff` first) |
 | `bash .github/scripts/run_cuda_visuals.sh` | not run (needs Docker, `--gpus all`, and the sm_120 runner) |
 | `docker build .` (`docker-build.yml`) | not run (Docker not available) |
 
