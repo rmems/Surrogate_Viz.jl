@@ -2,6 +2,8 @@
 
 Guidance for coding agents (Amp, Codex, Cursor, Claude Code, and others) working in this repository.
 
+More detailed, verified command notes and invariants are in `CLAUDE.md`; keep the two consistent.
+
 ## Purpose
 
 `Surrogate_Viz.jl` is a Julia SymbolicRegression + visualization workbench for `corinth-canal` SAAQ
@@ -19,7 +21,7 @@ fixtures under `test/fixtures/bundles/` because corinth-canal integration isn't 
 | `scripts/` (own `Project.toml`) | Validate/ingest SAAQ and grok-ozempic bundles, build dashboards |
 | Root `*.jl` (`SAAQ_*discovery.jl`, `compare_*.jl`, `plot_*.jl`, `import_corinth_runs.jl`) | Research/driver scripts |
 | `test/runtests.jl` (+ `test/fixtures/`) | Test suite |
-| `outputs/` | Committed generated artifacts (CSV, PNG) |
+| `outputs/` | Generated artifacts, gitignored except `outputs/root_artifacts/` (a few legacy files are still tracked) |
 | `Dockerfile`, `.github/RUNNER.md` | CUDA container image and self-hosted runner notes |
 
 ## Toolchain
@@ -42,13 +44,17 @@ julia --project=. scripts/validate_grok_ozempic_bundle.jl test/fixtures/grok_oze
 julia --project=. scripts/ingest_grok_ozempic_bundles.jl test/fixtures/grok_ozempic/ /tmp/grok_normalized/
 ```
 
-GPU-only (self-hosted): `Pkg.add("CUDA"); Pkg.test()` and `bash .github/scripts/run_cuda_visuals.sh`.
+GPU-only (self-hosted): `julia --project=. -e 'using Pkg; Pkg.add("CUDA"); Pkg.test()'` and
+`bash .github/scripts/run_cuda_visuals.sh`. `Pkg.add("CUDA")` rewrites `Project.toml` (moves CUDA out
+of `[weakdeps]`), so run it only in a throwaway checkout, or undo those lines afterward. Never
+commit CUDA into `[deps]`.
 
 ## Conventions visible in the repo
 
 - One-way data flow with corinth-canal (README "Repo Separation"): imported simulator runs land
   under `data/corinth_runs/<model>/<telemetry_source>/<condition>/<run_id>/` (`IMPORT_ROOT` in
-  `src/Surrogate_Viz.jl`), and generated artifacts go under `outputs/<model>/`. Simulator code
+  `src/Surrogate_Viz.jl`), and generated artifacts go under `outputs/<model>/`. Do not commit new generated outputs (they are
+  gitignored) or regenerated copies of already-tracked ones. Simulator code
   belongs to corinth-canal, so make simulator changes there rather than here.
 - The model roster is declared once in the label registry (`src/labels.jl`).
 - GitHub Actions are pinned to commit SHAs. Commit subjects use Conventional Commits (`feat:`,
