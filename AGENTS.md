@@ -46,15 +46,15 @@ julia --project=. scripts/ingest_grok_ozempic_bundles.jl test/fixtures/grok_ozem
 
 GPU-only (self-hosted): `julia --project=. -e 'using Pkg; Pkg.add("CUDA"); Pkg.test()'` and
 `bash .github/scripts/run_cuda_visuals.sh`. `Pkg.add("CUDA")` rewrites `Project.toml` (moves CUDA out
-of `[weakdeps]`), so run it only in a throwaway checkout, or undo those lines afterward. Never
-commit CUDA into `[deps]`.
+of `[weakdeps]`), so run it only in a throwaway checkout, or undo those lines afterward. CUDA
+belongs in `[weakdeps]`, not `[deps]`.
 
 ## Conventions visible in the repo
 
 - One-way data flow with corinth-canal (README "Repo Separation"): imported simulator runs land
   under `data/corinth_runs/<model>/<telemetry_source>/<condition>/<run_id>/` (`IMPORT_ROOT` in
-  `src/Surrogate_Viz.jl`), and generated artifacts go under `outputs/<model>/`. Do not commit new generated outputs (they are
-  gitignored) or regenerated copies of already-tracked ones. Simulator code
+  `src/Surrogate_Viz.jl`), and generated artifacts go under `outputs/<model>/`. New generated outputs are gitignored, and
+  regenerated copies of already-tracked ones should be left uncommitted. Simulator code
   belongs to corinth-canal, so make simulator changes there rather than here.
 - The model roster is declared once in the label registry (`src/labels.jl`).
 - GitHub Actions are pinned to commit SHAs. Commit subjects use Conventional Commits (`feat:`,
