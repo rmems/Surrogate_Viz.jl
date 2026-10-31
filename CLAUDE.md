@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Claude-specific notes only. There is no `AGENTS.md` in this repo; project overview, usage, and bundle formats are in
+Detailed, verified notes for Claude Code. Shared agent guidance for other tools is in `AGENTS.md`; keep the two consistent. Project overview, usage, and bundle formats are in
 `README.md`, and smoke-test commands are in `docs/validation.md`, so they are not repeated here.
 
 ## Commands
@@ -48,7 +48,7 @@ There is no formatter config or lint gate in the repo.
 
 - Source files carry no SPDX header (checked `src/`, `ext/`, `scripts/`, `test/`, and the root scripts); do not add one.
 - `Project.toml` has no `exclude`/`include` list, so adding this file needs no manifest change. Never run package registration or publish commands.
-- `.claude/` is gitignored, so keep shared agent guidance in this file.
+- `.claude/` is gitignored, so keep shared agent guidance in `AGENTS.md` or this file.
 - The README project tree lists `src/cuda_backend.jl`, which does not exist; the CUDA code is in `ext/CUDABackendExt.jl`.
 - Cold `Pkg.instantiate()` precompiles Plots, SymbolicRegression, and CUDA artifacts and took about 10 minutes here.
 - Edit only what the task needs.
