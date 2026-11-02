@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 # SECURITY: default to read-only. cuda-visuals + gpu-preflight tighten further.
 permissions:
@@ -30,10 +31,9 @@ jobs:
 
   test:
     # Runs on self-hosted GPU runner for full test coverage including CUDA tests
+    timeout-minutes: 60
     runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
-    if: >-
-      github.event_name == 'push' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Scope the Julia depot to this job
@@ -76,11 +76,10 @@ jobs:
 
   gpu-preflight:
     name: GPU/Docker preflight (host + container nvidia-smi)
+    timeout-minutes: 45
     runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
     # SECURITY (Grok Build 0.1 model)
-    if: >-
-      github.event_name == 'push' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
     steps:
@@ -213,10 +212,9 @@ jobs:
 
   cuda-visuals:
     name: CUDA visual kernels (pure Julia CUDA.jl + synthetic data)
+    timeout-minutes: 60
     runs-on: [self-hosted, Linux, X64, gpu, sm120, julia-cuda, docker]
-    if: >-
-      github.event_name == 'push' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
     steps:
