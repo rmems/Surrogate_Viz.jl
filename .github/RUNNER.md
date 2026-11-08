@@ -155,9 +155,8 @@ runner and will hang rather than fail.
   hosted runner carries, so a job cannot land there by accident.
 
 - **Least-privilege token.** `julia.yml` sets `permissions: contents: read` at
-  workflow level, re-declared per job on `gpu-preflight` and `cuda-visuals`. The
-  only job that ever holds `packages: write` is `publish`, and it no longer runs
-  on this host.
+  workflow level, re-declared per job on `gpu-preflight` and `cuda-visuals`. No
+  workflow holds `packages: write`: the Docker publish workflow was removed.
 
 ## What is NOT mitigated
 
@@ -202,14 +201,6 @@ container (`run_cuda_visuals.sh`), never touching the host's `~/.julia`. So
 the shared-depot risk is scoped to `test`, but that is still enough: a
 tampered package resolved there persists in `~/.julia` for the next `test`
 run of any other repository on this host.
-
-### Most actions are pinned to movable tags
-
-`actions/checkout@v4`, `julia-actions/setup-julia@v2`, `julia-actions/cache@v2`,
-`docker/build-push-action@v5` and `docker/login-action@v3` are tag-pinned. A tag
-can be repointed by its maintainer or by whoever compromises that account.
-`docker/setup-buildx-action` is pinned to a full commit SHA; the rest are not
-yet.
 
 ### `gpu-preflight` is green whenever Docker works, regardless of the GPU
 
