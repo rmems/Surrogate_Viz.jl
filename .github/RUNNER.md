@@ -15,13 +15,8 @@ Closes the documentation criterion of #44.
 | `test` | `julia.yml` | self-hosted | yes — adds CUDA, runs the CUDA testset |
 | `gpu-preflight` | `julia.yml` | self-hosted | yes — host + container `nvidia-smi` |
 | `cuda-visuals` | `julia.yml` | self-hosted | yes — runs CUDA visual kernels |
-| `build` | `docker-build.yml` | `ubuntu-latest` | no |
-| `publish` | `docker-publish.yml` | `ubuntu-latest` | no |
 
-Only jobs that genuinely need the GPU run on the self-hosted host. The two
-Docker jobs were moved to GitHub-hosted runners in #50: `docker build` executes
-the image's `RUN` instructions but never needs a GPU, and `Dockerfile:49`
-already tolerates `nvidia-smi` being absent.
+Only jobs that genuinely need the GPU run on the self-hosted host.
 
 `test-cpu` is the only job that runs for **fork** pull requests, and it is the
 only job whose result can be trusted as a gate on external contributions.
