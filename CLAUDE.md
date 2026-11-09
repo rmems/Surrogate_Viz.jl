@@ -19,7 +19,7 @@ Run from the repo root. "Verified" means it ran successfully in a fresh checkout
 | `julia --project=. scripts/ingest_grok_ozempic_bundles.jl test/fixtures/grok_ozempic/ <out_dir>` | verified |
 | `julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.add("CUDA")'` then `Pkg.test()` | not run (needs a CUDA GPU; the self-hosted `test` job runs it in a throwaway checkout. `Pkg.add` can edit `Project.toml`, so locally use a temporary copy of the checkout, or after the run undo only the `Pkg.add` lines in `Project.toml` (check `git diff`; a blanket `git checkout Project.toml` would also discard your own unstaged edits to it)) |
 | `bash .github/scripts/run_cuda_visuals.sh` | not run (needs Docker, `--gpus all`, and the sm_120 runner) |
-| `docker build .` (`docker-build.yml`) | not run (Docker not available) |
+| `docker build .` | not run (Docker not available; no Docker workflow in CI) |
 
 CI (`.github/workflows/julia.yml`) runs `test-cpu` on `ubuntu-latest` (Julia 1.12, instantiate, `Pkg.test()`). The `test`,
 `gpu-preflight`, and `cuda-visuals` jobs need the self-hosted RTX 5080 runner and are skipped for fork PRs; they are not local gates.
